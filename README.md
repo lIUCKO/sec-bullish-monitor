@@ -13,3 +13,4 @@ Repo → Settings → Secrets and variables → Actions:
 2. Postavi **Secrets** (gore).
 3. Otvori **Actions** → pokreni **Run workflow**.
 4. RSS: `public/feed.xml` (RAW URL) zalijepi u Inoreader → Add subscription.
+
