@@ -5,7 +5,7 @@
 # - 8-K s bullish ključnim riječima (buyback/guidance/agreement/merger/acquisition)
 # Rezultat sprema u data/history.jsonl, data/bullish_latest.json i public/feed.xml
 
-import os, re, json, datetime, html
+import os, re, json, datetime, html, hashlib
 import requests
 
 OUT_DIR = "public"
@@ -14,11 +14,11 @@ os.makedirs(OUT_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 
 SEC_API_KEY = os.getenv("SEC_API_KEY", "").strip()
-SEC_API_URL = os.getenv("SEC_API_URL", "").strip()   # npr. https://api.sec-api.io/query
-AUTH_SCHEME = os.getenv("AUTH_SCHEME", "bearer").lower()  # 'bearer' ili 'x-api-key'
+SEC_API_URL = os.getenv("SEC_API_URL", "").strip()       # npr. https://api.sec-api.io ili https://api.sec-api.io/query
+AUTH_SCHEME = (os.getenv("AUTH_SCHEME", "Bearer") or "Bearer").strip()
 USER_AGENT  = os.getenv("SEC_USER_AGENT", "sec-bullish-monitor/1.0 (contact: you@example.com)")
 
-BASE_HEADERS = {"User-Agent": USER_AGENT}
+BASE_HEADERS = {"User-Agent": USER_AGENT, "Accept": "application/json"}
 
 KEYWORDS_8K = [
     r"buyback", r"repurchase", r"share repurchase", r"stock repurchase",
@@ -28,23 +28,47 @@ KEYWORDS_8K = [
 ]
 
 def auth_headers():
+    """Vraća header-e za autentikaciju: Authorization: Bearer <key> ili x-api-key: <key>."""
     h = dict(BASE_HEADERS)
     if SEC_API_KEY:
-        if AUTH_SCHEME == "x-api-key":
+        if AUTH_SCHEME.lower() == "x-api-key":
             h["x-api-key"] = SEC_API_KEY
         else:
-            h["Authorization"] = f"Bearer {SEC_API_KEY}"
+            # default: Authorization: Bearer <key>
+            # (poštuje custom AUTH_SCHEME, npr. 'Bearer' ili 'Token')
+            h["Authorization"] = f"{AUTH_SCHEME} {SEC_API_KEY}"
     return h
 
+def _normalized_url():
+    """
+    Normalizira SEC_API_URL:
+      - ako je prazan, koristi default https://api.sec-api.io/query
+      - ukloni trailing '/', i pobrini se da završava s '/query'
+    """
+    base = (SEC_API_URL or "https://api.sec-api.io/query").strip()
+    base = base.rstrip("/")
+    if not base.endswith("/query"):
+        base = base + "/query"
+    return base
+
 def call_sec_api(query_json):
-    if not (SEC_API_KEY and SEC_API_URL):
-        raise RuntimeError("SEC_API_KEY/SEC_API_URL nisu postavljeni.")
-    r = requests.post(SEC_API_URL, headers=auth_headers(), json=query_json, timeout=45)
-    r.raise_for_status()
+    """POST /query s danim payloadom; vraća JSON ili diže HTTPError uz kratki ispis tijela."""
+    if not SEC_API_KEY:
+        raise RuntimeError("SEC_API_KEY nije postavljen.")
+    url = _normalized_url()
+    print(f"[sec-api] URL: {url}")
+    # oprez: ne ispisujemo ključ!
+    try:
+        r = requests.post(url, headers=auth_headers(), json=query_json, timeout=60)
+    except requests.RequestException as e:
+        raise RuntimeError(f"Ne mogu kontaktirati sec-api: {e}") from e
+    if r.status_code != 200:
+        snippet = (r.text or "")[:500]
+        print(f"[sec-api] HTTP {r.status_code} BODY: {snippet}")
+        r.raise_for_status()
     return r.json()
 
 def sha1_id(title, link):
-    import hashlib
     return hashlib.sha1((title + "|" + link).encode()).hexdigest()
 
 def build_rss(items, out_path):
@@ -94,35 +118,68 @@ def classify(n):
     return False, "Other form", []
 
 def run():
-    query = {"query": "formType:4 OR formType:8-K", "from": "0", "size": "100", "sort": [{ "filedAt": { "order": "desc" } }]}
+    query = {
+        "query": "formType:4 OR formType:8-K",
+        "from": "0",
+        "size": "100",
+        "sort": [{ "filedAt": { "order": "desc" } }]
+    }
+    print("[sec-api] Query payload:", json.dumps(query)[:400])
+
     data = call_sec_api(query)
+
+    # Razni oblici polja ovisno o endpointu/odgovoru
     hits = data.get("filings") or data.get("data") or data.get("hits") or data.get("items") or []
+    if isinstance(hits, dict) and "hits" in hits:  # Elasticsearch-style
+        hits = hits["hits"]
+
     items = []
     for raw in hits:
+        # neki odgovori vraćaju objekte unutar 'filings' → {'filing': {...}}
+        if isinstance(raw, dict) and "filing" in raw and isinstance(raw["filing"], dict):
+            raw = raw["filing"]
         n = normalize_hit(raw)
         ok, reason, evidence = classify(n)
         if ok:
             title = f"{n['form']} - {n['company']}"
-            rec = {"title": title, "link": n["link"], "updated": n["filedAt"], "reason": reason, "evidence": evidence,
-                   "id": sha1_id(title, n["link"])}
+            rec = {
+                "title": title,
+                "link": n["link"],
+                "updated": n["filedAt"],
+                "reason": reason,
+                "evidence": evidence,
+                "id": sha1_id(title, n["link"]),
+            }
             items.append(rec)
-    ids = set(); uniq=[]
+
+    # deduplikacija
+    ids, uniq = set(), []
     for it in items:
-        if it["id"] in ids: continue
+        if it["id"] in ids: 
+            continue
         ids.add(it["id"]); uniq.append(it)
-    hist = os.path.join(DATA_DIR,"history.jsonl"); existing=set()
+
+    # povijest
+    hist = os.path.join(DATA_DIR, "history.jsonl")
+    existing = set()
     if os.path.exists(hist):
-        with open(hist,"r",encoding="utf-8") as f:
+        with open(hist, "r", encoding="utf-8") as f:
             for line in f:
-                try: existing.add(json.loads(line).get("id",""))
-                except: pass
-    new_items=[x for x in uniq if x["id"] not in existing]
+                try:
+                    existing.add(json.loads(line).get("id",""))
+                except:
+                    pass
+
+    new_items = [x for x in uniq if x["id"] not in existing]
     if new_items:
-        with open(hist,"a",encoding="utf-8") as f:
-            for x in new_items: f.write(json.dumps(x,ensure_ascii=False)+"\n")
-    with open(os.path.join(DATA_DIR,"bullish_latest.json"),"w",encoding="utf-8") as f:
-        json.dump(uniq,f,ensure_ascii=False,indent=2)
-    build_rss(uniq, os.path.join(OUT_DIR,"feed.xml"))
+        with open(hist, "a", encoding="utf-8") as f:
+            for x in new_items:
+                f.write(json.dumps(x, ensure_ascii=False) + "\n")
+
+    with open(os.path.join(DATA_DIR, "bullish_latest.json"), "w", encoding="utf-8") as f:
+        json.dump(uniq, f, ensure_ascii=False, indent=2)
+
+    build_rss(uniq, os.path.join(OUT_DIR, "feed.xml"))
     print(f"Done. Bullish items: {len(uniq)}")
 
 if __name__ == "__main__":
