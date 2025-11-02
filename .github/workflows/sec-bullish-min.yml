@@ -1,4 +1,4 @@
-name: SEC Bullish Monitor PRO
+name: SEC Bullish Monitor PRO + RSS
 
 on:
   workflow_dispatch:
@@ -27,13 +27,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Fetch & save all bullish categories
+      - name: Fetch & save all bullish categories (JSON/CSV)
         run: |
           python - <<'PY'
           import os, csv, json, datetime as dt, requests, pathlib, sys
+
           key = os.getenv("SEC_API_KEY")
           if not key:
-            print("SEC_API_KEY missing"); sys.exit(1)
+            print("❌ SEC_API_KEY missing"); sys.exit(1)
 
           def save_files(name, rows, cols):
             p = pathlib.Path(".")
@@ -54,9 +55,9 @@ jobs:
             r.raise_for_status()
             return r.json().get("filings", [])
 
-          # vremenski prozor
+          # vremenski prozor: zadnjih 24h
           today = dt.date.today()
-          d1 = today - dt.timedelta(days=1)   # 24h
+          d1 = today - dt.timedelta(days=1)
           window = f"[{d1.isoformat()} TO {today.isoformat()}]"
 
           # zajedničke kolone za CSV
@@ -70,7 +71,7 @@ jobs:
             f'"dividend increase" OR "partnership" OR "contract award" OR "FDA approval") '
             f'NOT ("ATM" OR "offering" OR "termination" OR "delist")'
           )
-          rows = query_sec(q_8k_bullish, 60)
+          rows = query_sec(q_8k_bullish, 80)
           save_files("8K_bullish", rows, COLS)
 
           # 2) 8-K Material Agreement (Item 1.01) + partnerstva/ugovori
@@ -81,7 +82,7 @@ jobs:
             f'"collaboration agreement" OR "contract" OR "master services agreement") '
             f'NOT ("termination" OR "amendment only" OR "ATM" OR "equity offering")'
           )
-          rows = query_sec(q_8k_mat, 80)
+          rows = query_sec(q_8k_mat, 120)
           save_files("8K_material_agreements", rows, COLS)
 
           # 3) 10-Q bullish fraze
@@ -91,16 +92,15 @@ jobs:
             f'"returning to growth" OR "margin expansion") '
             f'NOT ("going concern" OR "liquidity risk" OR "covenant breach")'
           )
-          rows = query_sec(q_10q, 40)
+          rows = query_sec(q_10q, 60)
           save_files("10Q_bullish", rows, COLS)
 
-          # 4) Form 4 insider kupnje (A = acquired)
-          # Napomena: Form 4 polja ovise o normalizaciji; SEC-API mapira osnovne meta podatke.
+          # 4) Form 4 insider kupnje (A = acquired ili P = purchase)
           q_f4 = (
             f'formType:"4" AND filedAt:{window} AND '
-            f'(transactionAcquiredDisposedCode:"A" OR "P")'
+            f'(transactionAcquiredDisposedCode:"A" OR transactionCode:"P")'
           )
-          rows = query_sec(q_f4, 120)
+          rows = query_sec(q_f4, 200)
           save_files("Form4_buys", rows, COLS)
 
           # 5) 13D / 13G (novi/izmijenjeni veliki udjeli)
@@ -108,9 +108,68 @@ jobs:
             f'formType:("SC 13D" OR "SC 13G") AND filedAt:{window} '
             f'NOT ("amendment no. 10" OR "inactive")'
           )
-          rows = query_sec(q_13, 60)
+          rows = query_sec(q_13, 100)
           save_files("13D_13G", rows, COLS)
+          PY
 
+      - name: Build merged RSS feed (sec-bullish.xml)
+        run: |
+          python - <<'PY'
+          import json, datetime as dt, pathlib, html
+
+          now = dt.datetime.utcnow()
+          def load(name):
+            p = pathlib.Path(f"{name}.json")
+            if not p.exists(): return []
+            with p.open("r", encoding="utf-8") as f:
+              return json.load(f).get("filings", [])
+
+          # Spoji sve kategorije
+          cats = [
+            ("8K_bullish", "8-K Bullish"),
+            ("8K_material_agreements", "8-K Material Agreement"),
+            ("10Q_bullish", "10-Q Bullish"),
+            ("Form4_buys", "Form 4 Insider Buy"),
+            ("13D_13G", "13D/13G Ownership"),
+          ]
+          items = []
+          for fname, label in cats:
+            for x in load(fname):
+              items.append((fname, label, x))
+
+          # Sort: filedAt desc (string sort je ok jer format je ISO-like)
+          items.sort(key=lambda t: t[2].get("filedAt",""), reverse=True)
+
+          rss_items = []
+          for fname, label, f in items[:200]:
+            title = f"{f.get('ticker','?')} | {label} | {f.get('companyName','?')}"
+            link  = f.get("linkToFiling") or "https://www.sec.gov"
+            pub   = f.get("filedAt","")
+            desc  = f"Form: {f.get('formType','?')} | Items: {f.get('items','')} | Accession: {f.get('accessionNo','')}"
+            guid  = f.get('accessionNo','') or (f.get('ticker','?')+pub)
+            rss_items.append(f"""
+              <item>
+                <title>{html.escape(title)}</title>
+                <link>{html.escape(link)}</link>
+                <guid isPermaLink="false">{html.escape(guid)}</guid>
+                <pubDate>{html.escape(pub)}</pubDate>
+                <description>{html.escape(desc)}</description>
+              </item>
+            """)
+
+          rss = f"""<?xml version="1.0" encoding="UTF-8"?>
+          <rss version="2.0">
+            <channel>
+              <title>SEC Bullish Monitor (PRO)</title>
+              <link>https://github.com/${{ github.repository }}</link>
+              <description>8-K Bullish, Item 1.01 (Material Agreements), 10-Q Bullish, Form 4 buys, 13D/13G</description>
+              <lastBuildDate>{now.strftime("%a, %d %b %Y %H:%M:%S +0000")}</lastBuildDate>
+              {''.join(rss_items)}
+            </channel>
+          </rss>"""
+          out = pathlib.Path("sec-bullish.xml")
+          out.write_text(rss.strip(), encoding="utf-8")
+          print("RSS generated:", out, "size:", out.stat().st_size)
           PY
 
       - name: Commit & push outputs
@@ -121,6 +180,7 @@ jobs:
                  8K_material_agreements.json 8K_material_agreements.csv \
                  10Q_bullish.json 10Q_bullish.csv \
                  Form4_buys.json Form4_buys.csv \
-                 13D_13G.json 13D_13G.csv || true
-          git commit -m "update: latest SEC bullish monitor (all categories)" || echo "No changes"
+                 13D_13G.json 13D_13G.csv \
+                 sec-bullish.xml
+          git commit -m "update: SEC Bullish PRO + RSS" || echo "No changes"
           git push
