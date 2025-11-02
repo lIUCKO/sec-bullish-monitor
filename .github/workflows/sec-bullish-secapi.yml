@@ -36,7 +36,7 @@ jobs:
           pip install requests
 
       # DEBUG 2: jesu li secreti prisutni (ne ispisujemo vrijednosti!)
-      - name: Provjeri secretes
+           - name: Provjeri secretes
         env:
           SEC_API_KEY: ${{ secrets.SEC_API_KEY }}
           SEC_API_URL: ${{ secrets.SEC_API_URL }}
@@ -44,13 +44,13 @@ jobs:
         run: |
           python - <<'PY'
           import os, sys
-          def ok(name):
-              v = os.getenv(name)
-              print(f"{name} set: {bool(v)}")
-              return bool(v)
-          all_ok = all([ok("SEC_API_KEY"), ok("SEC_API_URL")])
-          sys.exit(0 if all_ok else 3)
+          k = os.getenv("SEC_API_KEY","")
+          print("SEC_API_KEY set:", bool(k), "| length:", len(k))
+          print("SEC_API_URL set:", bool(os.getenv("SEC_API_URL")))
+          print("AUTH_SCHEME:", os.getenv("AUTH_SCHEME"))
+          sys.exit(0 if k else 3)
           PY
+
 
       - name: Run fetcher (sec-api)
         env:
