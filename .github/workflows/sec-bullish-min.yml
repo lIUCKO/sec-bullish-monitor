@@ -1,9 +1,9 @@
-name: SEC Bullish (minimal)
+name: SEC Bullish (minimal+ save)
 
 on:
-  workflow_dispatch:          # ručno pokretanje
+  workflow_dispatch:
   schedule:
-    - cron: "*/15 * * * *"    # svakih 15 minuta
+    - cron: "*/15 * * * *"    # svakih 15 min
 
 permissions:
   contents: write
@@ -14,7 +14,7 @@ jobs:
     env:
       SEC_API_KEY: ${{ secrets.SEC_API_KEY }}
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -22,40 +22,65 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Test SEC-API connection
+      - name: Fetch bullish filings (last 24h) and save JSON/CSV
         run: |
           python - <<'PY'
-          import os, requests, json
+          import os, json, csv, datetime as dt, requests, pathlib
           key = os.getenv("SEC_API_KEY")
-          if not key:
-              raise SystemExit("❌ SEC_API_KEY nije pronađen u secrets.")
-          print("🔑 Ključ učitan (duljina:", len(key), ")")
+          assert key, "SEC_API_KEY missing"
 
-          url = "https://api.sec-api.io"
+          today = dt.date.today()
+          yesterday = today - dt.timedelta(days=1)
+
+          query = (
+              f'formType:("8-K" OR "10-Q") '
+              f'AND filedAt:[{yesterday.isoformat()} TO {today.isoformat()}] '
+              f'AND ("guidance raised" OR "buyback" OR "increased outlook" OR '
+              f'"dividend increase" OR "partnership" OR "contract award" OR "FDA approval") '
+              f'NOT ("ATM" OR "offering" OR "termination" OR "delist")'
+          )
+
           payload = {
-              "query": 'formType:"8-K"',
+              "query": query,
               "from": "0",
-              "size": "2",
+              "size": "50",
               "sort": [{"filedAt": {"order": "desc"}}]
           }
 
+          url = "https://api.sec-api.io"
           r = requests.post(url, headers={"Authorization": key}, json=payload, timeout=30)
           print("HTTP:", r.status_code)
-          print(r.text[:600])
           r.raise_for_status()
-          print("✅ SEC API radi ispravno.")
+          data = r.json()
+          filings = data.get("filings", [])
+
+          outdir = pathlib.Path(".")
+          json_path = outdir / "latest_bullish.json"
+          csv_path  = outdir / "latest_bullish.csv"
+
+          with open(json_path, "w", encoding="utf-8") as f:
+              json.dump({"count": len(filings), "filings": filings}, f, ensure_ascii=False, indent=2)
+
+          # CSV
+          cols = ["filedAt","companyName","ticker","formType","accessionNo","linkToFiling"]
+          with open(csv_path, "w", newline="", encoding="utf-8") as f:
+              w = csv.writer(f)
+              w.writerow(cols)
+              for x in filings:
+                  w.writerow([x.get(c,"") for c in cols])
+
+          print(f"Saved {len(filings)} filings to:", json_path, "and", csv_path)
           PY
 
-      - name: Commit marker
+      - name: Commit & push outputs
         run: |
-          echo "Last run: $(date)" > last_run.txt
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add last_run.txt
-          git commit -m "update: last run marker" || echo "No changes"
+          git add latest_bullish.json latest_bullish.csv
+          git commit -m "update: latest bullish filings" || echo "No changes"
           git push
