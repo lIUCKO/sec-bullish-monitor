@@ -20,7 +20,6 @@ USER_AGENT  = os.getenv("SEC_USER_AGENT", "sec-bullish-monitor/1.0 (contact: you
 
 BASE_HEADERS = {"User-Agent": USER_AGENT}
 
-# 8-K bullish signali
 KEYWORDS_8K = [
     r"buyback", r"repurchase", r"share repurchase", r"stock repurchase",
     r"raises?\s+guidance", r"guidance\s+(raise|increas)", r"outlook\s+(raise|increas)",
@@ -68,32 +67,19 @@ def build_rss(items, out_path):
         f.write("\n".join(xml))
 
 def normalize_hit(hit):
-    """Normalizira različite oblike koje sec-api može vratiti."""
     form = (hit.get("formType") or hit.get("form") or "").upper()
     filed_at = hit.get("filedAt") or hit.get("filingDate") or hit.get("date") or ""
     company = hit.get("companyName") or hit.get("issuerName") or hit.get("title") or ""
     link = hit.get("filingUrl") or hit.get("link") or hit.get("htmlUrl") or hit.get("url") or ""
-
     tx_codes = []
     txs = hit.get("transactions") or hit.get("transactionCoding") or []
-    if isinstance(txs, dict):
-        txs = [txs]
+    if isinstance(txs, dict): txs = [txs]
     if isinstance(txs, list):
         for t in txs:
             c = (t.get("transactionCode") or t.get("code") or "").upper()
-            if c:
-                tx_codes.append(c)
-
+            if c: tx_codes.append(c)
     text_fields = " ".join([str(hit.get(k,"")) for k in ("description","text","exhibitText","documentsText","body")])
-
-    return {
-        "form": form,
-        "filedAt": filed_at,
-        "company": company,
-        "link": link,
-        "tx_codes": tx_codes,
-        "text_blob": text_fields,
-    }
+    return {"form": form, "filedAt": filed_at, "company": company, "link": link, "tx_codes": tx_codes, "text_blob": text_fields}
 
 def classify(n):
     if n["form"] == "4":
@@ -108,15 +94,8 @@ def classify(n):
     return False, "Other form", []
 
 def run():
-    # Uzmi zadnjih 100 filing-a (4 i 8-K), sortirano po filedAt desc
-    query = {
-        "query": "formType:4 OR formType:8-K",
-        "from": "0",
-        "size": "100",
-        "sort": [{ "filedAt": { "order": "desc" } }]
-    }
+    query = {"query": "formType:4 OR formType:8-K", "from": "0", "size": "100", "sort": [{ "filedAt": { "order": "desc" } }]}
     data = call_sec_api(query)
-
     hits = data.get("filings") or data.get("data") or data.get("hits") or data.get("items") or []
     items = []
     for raw in hits:
@@ -124,41 +103,26 @@ def run():
         ok, reason, evidence = classify(n)
         if ok:
             title = f"{n['form']} - {n['company']}"
-            rec = {
-                "title": title,
-                "link": n["link"],
-                "updated": n["filedAt"],
-                "reason": reason,
-                "evidence": evidence,
-                "id": sha1_id(title, n["link"])
-            }
+            rec = {"title": title, "link": n["link"], "updated": n["filedAt"], "reason": reason, "evidence": evidence,
+                   "id": sha1_id(title, n["link"])}
             items.append(rec)
-
-    # dedup & history
-    ids = set(); uniq = []
+    ids = set(); uniq=[]
     for it in items:
         if it["id"] in ids: continue
         ids.add(it["id"]); uniq.append(it)
-
-    hist_path = os.path.join(DATA_DIR, "history.jsonl")
-    existing = set()
-    if os.path.exists(hist_path):
-        with open(hist_path, "r", encoding="utf-8") as f:
+    hist = os.path.join(DATA_DIR,"history.jsonl"); existing=set()
+    if os.path.exists(hist):
+        with open(hist,"r",encoding="utf-8") as f:
             for line in f:
-                try:
-                    existing.add(json.loads(line).get("id",""))
-                except:
-                    pass
-    new_items = [x for x in uniq if x["id"] not in existing]
+                try: existing.add(json.loads(line).get("id",""))
+                except: pass
+    new_items=[x for x in uniq if x["id"] not in existing]
     if new_items:
-        with open(hist_path, "a", encoding="utf-8") as f:
-            for x in new_items:
-                f.write(json.dumps(x, ensure_ascii=False) + "\n")
-
-    with open(os.path.join(DATA_DIR, "bullish_latest.json"), "w", encoding="utf-8") as f:
-        json.dump(uniq, f, ensure_ascii=False, indent=2)
-
-    build_rss(uniq, os.path.join(OUT_DIR, "feed.xml"))
+        with open(hist,"a",encoding="utf-8") as f:
+            for x in new_items: f.write(json.dumps(x,ensure_ascii=False)+"\n")
+    with open(os.path.join(DATA_DIR,"bullish_latest.json"),"w",encoding="utf-8") as f:
+        json.dump(uniq,f,ensure_ascii=False,indent=2)
+    build_rss(uniq, os.path.join(OUT_DIR,"feed.xml"))
     print(f"Done. Bullish items: {len(uniq)}")
 
 if __name__ == "__main__":
