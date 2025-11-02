@@ -1,9 +1,9 @@
-name: SEC Bullish (minimal+ save)
+name: SEC Bullish Monitor PRO
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/15 * * * *"    # svakih 15 min
+    - cron: "*/30 * * * *"   # svakih 30 min
 
 permissions:
   contents: write
@@ -27,60 +27,100 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Fetch bullish filings (last 24h) and save JSON/CSV
+      - name: Fetch & save all bullish categories
         run: |
           python - <<'PY'
-          import os, json, csv, datetime as dt, requests, pathlib
+          import os, csv, json, datetime as dt, requests, pathlib, sys
           key = os.getenv("SEC_API_KEY")
-          assert key, "SEC_API_KEY missing"
+          if not key:
+            print("SEC_API_KEY missing"); sys.exit(1)
 
+          def save_files(name, rows, cols):
+            p = pathlib.Path(".")
+            jp, cp = p/f"{name}.json", p/f"{name}.csv"
+            with open(jp, "w", encoding="utf-8") as f:
+              json.dump({"count": len(rows), "filings": rows}, f, ensure_ascii=False, indent=2)
+            with open(cp, "w", newline="", encoding="utf-8") as f:
+              w = csv.writer(f); w.writerow(cols)
+              for r in rows:
+                w.writerow([r.get(c,"") for c in cols])
+            print(f"Saved {len(rows)} → {jp}, {cp}")
+
+          def query_sec(query, size=100):
+            url = "https://api.sec-api.io"
+            payload = {"query": query, "from": "0", "size": str(size), "sort":[{"filedAt":{"order":"desc"}}]}
+            r = requests.post(url, headers={"Authorization": key}, json=payload, timeout=40)
+            print("HTTP:", r.status_code, "| len(query):", len(query))
+            r.raise_for_status()
+            return r.json().get("filings", [])
+
+          # vremenski prozor
           today = dt.date.today()
-          yesterday = today - dt.timedelta(days=1)
+          d1 = today - dt.timedelta(days=1)   # 24h
+          window = f"[{d1.isoformat()} TO {today.isoformat()}]"
 
-          query = (
-              f'formType:("8-K" OR "10-Q") '
-              f'AND filedAt:[{yesterday.isoformat()} TO {today.isoformat()}] '
-              f'AND ("guidance raised" OR "buyback" OR "increased outlook" OR '
-              f'"dividend increase" OR "partnership" OR "contract award" OR "FDA approval") '
-              f'NOT ("ATM" OR "offering" OR "termination" OR "delist")'
+          # zajedničke kolone za CSV
+          COLS = ["filedAt","companyName","ticker","formType","accessionNo","linkToFiling","items","documentFormatFiles"]
+
+          # 1) 8-K bullish (7.01/2.02 + fraze)
+          q_8k_bullish = (
+            f'formType:"8-K" AND filedAt:{window} AND '
+            f'(items:"7.01" OR items:"2.02") AND '
+            f'("guidance raised" OR "buyback" OR "increased outlook" OR '
+            f'"dividend increase" OR "partnership" OR "contract award" OR "FDA approval") '
+            f'NOT ("ATM" OR "offering" OR "termination" OR "delist")'
           )
+          rows = query_sec(q_8k_bullish, 60)
+          save_files("8K_bullish", rows, COLS)
 
-          payload = {
-              "query": query,
-              "from": "0",
-              "size": "50",
-              "sort": [{"filedAt": {"order": "desc"}}]
-          }
+          # 2) 8-K Material Agreement (Item 1.01) + partnerstva/ugovori
+          q_8k_mat = (
+            f'formType:"8-K" AND filedAt:{window} AND items:"1.01" AND '
+            f'("material agreement" OR "partnership" OR "strategic partnership" OR '
+            f'"supply agreement" OR "distribution agreement" OR "licensing agreement" OR '
+            f'"collaboration agreement" OR "contract" OR "master services agreement") '
+            f'NOT ("termination" OR "amendment only" OR "ATM" OR "equity offering")'
+          )
+          rows = query_sec(q_8k_mat, 80)
+          save_files("8K_material_agreements", rows, COLS)
 
-          url = "https://api.sec-api.io"
-          r = requests.post(url, headers={"Authorization": key}, json=payload, timeout=30)
-          print("HTTP:", r.status_code)
-          r.raise_for_status()
-          data = r.json()
-          filings = data.get("filings", [])
+          # 3) 10-Q bullish fraze
+          q_10q = (
+            f'formType:"10-Q" AND filedAt:{window} AND '
+            f'("guidance raised" OR "improved outlook" OR "profitability" OR '
+            f'"returning to growth" OR "margin expansion") '
+            f'NOT ("going concern" OR "liquidity risk" OR "covenant breach")'
+          )
+          rows = query_sec(q_10q, 40)
+          save_files("10Q_bullish", rows, COLS)
 
-          outdir = pathlib.Path(".")
-          json_path = outdir / "latest_bullish.json"
-          csv_path  = outdir / "latest_bullish.csv"
+          # 4) Form 4 insider kupnje (A = acquired)
+          # Napomena: Form 4 polja ovise o normalizaciji; SEC-API mapira osnovne meta podatke.
+          q_f4 = (
+            f'formType:"4" AND filedAt:{window} AND '
+            f'(transactionAcquiredDisposedCode:"A" OR "P")'
+          )
+          rows = query_sec(q_f4, 120)
+          save_files("Form4_buys", rows, COLS)
 
-          with open(json_path, "w", encoding="utf-8") as f:
-              json.dump({"count": len(filings), "filings": filings}, f, ensure_ascii=False, indent=2)
+          # 5) 13D / 13G (novi/izmijenjeni veliki udjeli)
+          q_13 = (
+            f'formType:("SC 13D" OR "SC 13G") AND filedAt:{window} '
+            f'NOT ("amendment no. 10" OR "inactive")'
+          )
+          rows = query_sec(q_13, 60)
+          save_files("13D_13G", rows, COLS)
 
-          # CSV
-          cols = ["filedAt","companyName","ticker","formType","accessionNo","linkToFiling"]
-          with open(csv_path, "w", newline="", encoding="utf-8") as f:
-              w = csv.writer(f)
-              w.writerow(cols)
-              for x in filings:
-                  w.writerow([x.get(c,"") for c in cols])
-
-          print(f"Saved {len(filings)} filings to:", json_path, "and", csv_path)
           PY
 
       - name: Commit & push outputs
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add latest_bullish.json latest_bullish.csv
-          git commit -m "update: latest bullish filings" || echo "No changes"
+          git add 8K_bullish.json 8K_bullish.csv \
+                 8K_material_agreements.json 8K_material_agreements.csv \
+                 10Q_bullish.json 10Q_bullish.csv \
+                 Form4_buys.json Form4_buys.csv \
+                 13D_13G.json 13D_13G.csv || true
+          git commit -m "update: latest SEC bullish monitor (all categories)" || echo "No changes"
           git push
