@@ -105,4 +105,24 @@ def q_13d13g(hours=LOOKBACK_HOURS):
 def q_form4(hours=LOOKBACK_HOURS):
     return {
       "query":{"query_string":{"query":f'formType:"4" AND filedAt:[NOW-{hours}HOURS TO NOW]'}},
-      "from":0,"size":MAX_RESULTS,"sor_
+      "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
+    }
+
+def q_10q(hours=LOOKBACK_HOURS):
+    return {
+      "query":{"query_string":{"query":f'formType:"10-Q" AND filedAt:[NOW-{hours}HOURS TO NOW]'}},
+      "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
+    }
+
+def run():
+    total = 0
+
+    data = sec_fetch(q_8k()); rows = [norm(x) for x in data]; save(rows, "8K_bullish"); total += len(rows)
+    data = sec_fetch(q_13d13g()); rows = [norm(x) for x in data]; save(rows, "13D_13G"); total += len(rows)
+    data = sec_fetch(q_form4());  rows = [norm(x) for x in data]; save(rows, "Form4_buys"); total += len(rows)
+    data = sec_fetch(q_10q());    rows = [norm(x) for x in data]; save(rows, "10Q_bullish"); total += len(rows)
+
+    print(f"✅ Total normalized rows: {total}")
+
+if __name__ == "__main__":
+    run()
