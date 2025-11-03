@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SEC Bullish Monitor — Live</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    :root { --fg:#111; --muted:#666; --bd:#e5e7eb; --bg:#fff; --chip:#eef; --chipbd:#cdd; }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--fg);margin:24px;line-height:1.4}
+    header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{margin:0;font-size:22px}
+    .chip{display:inline-block;background:var(--chip);border:1px solid var(--chipbd);border-radius:8px;padding:4px 8px;font-size:12px}
+    .wrap{display:grid;gap:28px}
+    section h2{margin:0 0 10px;font-size:18px}
+    .muted{color:var(--muted);font-size:13px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid var(--bd);padding:8px;vertical-align:top;font-size:14px}
+    th{background:#f8f8fb;text-align:left}
+    a{color:#0a58ca;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .empty{padding:10px;border:1px dashed var(--bd);background:#fafafa}
+    .controls{display:flex;gap:10px;align-items:center}
+    input[type="search"]{padding:6px 8px;border:1px solid var(--bd);border-radius:8px;min-width:220px}
+    button{padding:6px 10px;border:1px solid var(--bd);background:#fff;border-radius:8px;cursor:pointer}
+    button:hover{background:#f6f7f9}
+  </style>
+</head>
+<body>
+<header>
+  <h1>SEC Bullish Monitor <span class="chip" id="asof">učitavanje…</span></h1>
+  <div class="controls">
+    <input id="q" type="search" placeholder="Filtriraj (ticker, kompanija, forma)"/>
+    <button id="clear">Očisti</button>
+    <a class="chip" href="./sec-bullish.xml" target="_blank" rel="noopener">RSS feed</a>
+  </div>
+</header>
+
+<p class="muted">Automatski prikaz CSV datoteka koje generira GitHub Actions (Form 4 kupnje, 8-K bullish, 13D/13G, 10-Q bullish). Zadnje dodano je na vrhu.</p>
+
+<div class="wrap">
+  <section>
+    <h2>8-K — Bullish</h2>
+    <div id="tbl-8k"></div>
+  </section>
+  <section>
+    <h2>Form 4 — Insider kupnje (P/A)</h2>
+    <div id="tbl-f4"></div>
+  </section>
+  <section>
+    <h2>13D/13G — Pozicije</h2>
+    <div id="tbl-13"></div>
+  </section>
+  <section>
+    <h2>10-Q — Bullish naznake</h2>
+    <div id="tbl-10q"></div>
+  </section>
+</div>
+
+<script>
+const FILES = {
+  "8K_bullish.csv":   { mount: "#tbl-8k" },
+  "Form4_buys.csv":   { mount: "#tbl-f4" },
+  "13D_13G.csv":      { mount: "#tbl-13" },
+  "10Q_bullish.csv":  { mount: "#tbl-10q" }
+};
+
+const asofEl = document.getElementById("asof");
+const qEl = document.getElementById("q");
+const clearEl = document.getElementById("clear");
+
+function parseCSV(text){
+  // robustno parsiranje: poštuje navodnike i zareze unutar njih
+  const lines = text.replace(/\r/g,"").split("\n").filter(Boolean);
+  if(!lines.length) return [];
+  const headers = splitCSVLine(lines[0]);
+  return lines.slice(1).map(l=>{
+    const cols = splitCSVLine(l);
+    const obj = {};
+    headers.forEach((h,i)=> obj[h] = (cols[i]||"").replace(/^"|"$/g,""));
+    return obj;
+  });
+}
+function splitCSVLine(line){
+  const out=[]; let cur=""; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i], n=line[i+1];
+    if(c === '"' ){ 
+      if(inQ && n === '"'){ cur+='"'; i++; continue; }
+      inQ = !inQ; continue;
+    }
+    if(c === ',' && !inQ){ out.push(cur); cur=""; continue; }
+    cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+async function fetchCSV(path){
+  try{
+    const r = await fetch(path, {cache:"no-store"});
+    if(!r.ok) return [];
+    const txt = await r.text();
+    return parseCSV(txt);
+  }catch(e){ return []; }
+}
+
+function renderTable(rows, mountSel, query=""){
+  const mount = document.querySelector(mountSel);
+  if(!rows.length){
+    mount.innerHTML = `<div class="empty muted">Nema rezultata u ovom prozoru.</div>`;
+    return;
+  }
+  // filter prema query
+  const q = (query||"").trim().toLowerCase();
+  const filtered = q ? rows.filter(r=>{
+    return (r.ticker||"").toLowerCase().includes(q) ||
+           (r.company||"").toLowerCase().includes(q) ||
+           (r.form||"").toLowerCase().includes(q);
+  }) : rows;
+
+  // sort po filedAt desc (ako postoji)
+  filtered.sort((a,b)=>{
+    const da = Date.parse(a.filedAt||"") || 0;
+    const db = Date.parse(b.filedAt||"") || 0;
+    return db - da;
+  });
+
+  const cols = ["ticker","company","form","filedAt","url","cik"];
+  const thead = "<thead><tr>"+cols.map(c=>`<th>${c}</th>`).join("")+"</tr></thead>";
+  const tbody = "<tbody>"+filtered.map(r=>{
+    const link = r.url ? `<a href="${r.url}" target="_blank" rel="noopener">link</a>` : "";
+    return `<tr>
+      <td>${esc(r.ticker)}</td>
+      <td>${esc(r.company)}</td>
+      <td>${esc(r.form)}</td>
+      <td>${esc(r.filedAt)}</td>
+      <td>${link}</td>
+      <td>${esc(r.cik)}</td>
+    </tr>`;
+  }).join("")+"</tbody>";
+  mount.innerHTML = `<table>${thead}${tbody}</table>`;
+}
+
+function esc(s){ return (s??"").toString().replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+async function loadAll(query=""){
+  // učitaj sve CSV-ove paralelno
+  const entries = await Promise.all(Object.keys(FILES).map(async (f)=>{
+    const rows = await fetchCSV(`./${f}`);
+    return [f, rows];
+  }));
+  let newestTs = 0;
+  for(const [fname, rows] of entries){
+    renderTable(rows, FILES[fname].mount, query);
+    for(const r of rows){
+      const t = Date.parse(r.filedAt||"");
+      if(t && t>newestTs) newestTs = t;
+    }
+  }
+  asofEl.textContent = newestTs ? ("zadnje: " + new Date(newestTs).toLocaleString()) : "nema svježih unosa";
+}
+
+qEl.addEventListener("input", ()=> loadAll(qEl.value));
+clearEl.addEventListener("click", ()=> { qEl.value=""; loadAll(""); });
+
+// init
+loadAll();
+</script>
+</body>
+</html>
