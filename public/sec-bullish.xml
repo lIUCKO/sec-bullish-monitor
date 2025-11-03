@@ -1,18 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
-<channel>
-    <title>SEC Bullish Monitor (PRO)</title>
-    <link>https://github.com/IIUCKO/sec-bullish-monitor</link>
-    <description>8-K Bullish, Item 1.01 (Material Agreements), 10-Q Bullish, Form 4 Buys, 13D/13G</description>
-    <lastBuildDate>Sun, 02 Nov 2025 18:18:13 +0000</lastBuildDate>
-
-    <item>
-        <title>Example SEC Bullish Filing</title>
-        <link>https://www.sec.gov/Archives/edgar/data/0000000000/example</link>
-        <description>Ovdje će se pojaviti novi bullish 8-K / 10-Q / Form 4 filing kada workflow povuče nove podatke.</description>
-        <pubDate>Sun, 02 Nov 2025 18:18:13 +0000</pubDate>
-        <guid>example-0001</guid>
-    </item>
-
-</channel>
-</rss>
+<rss version="2.0"><channel>
+<title>SEC Bullish Monitor</title>
+<description>Automatski SEC bullish feed</description>
+<link>https://liucko/sec-bullish-monitor</link>
+<lastBuildDate>Mon, 03 Nov 2025 13:09:29 +0000</lastBuildDate>
+</channel></rss>
