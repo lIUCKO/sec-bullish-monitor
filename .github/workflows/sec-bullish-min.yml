@@ -3,64 +3,42 @@ name: SEC Bullish Monitor PRO + RSS
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/30 * * * *"  # svakih 30 min
+    - cron: "*/30 * * * *"   # svakih 30 min
 
 permissions:
   contents: write
-
-env:
-  LOOKBACK_HOURS: 168       # koliko sati unazad (7 dana)
-  MAX_RESULTS: 2000         # koliko max filing-a povlači
-  PYTHON_VERSION: '3.x'
 
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up job
-        run: echo "Starting SEC Bullish Monitor..."
-
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: "3.11"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
+      - name: Install deps
+        run: python -m pip install --upgrade requests
 
       - name: Fetch & save all bullish categories (JSON/CSV)
         env:
+          SEC_API_URL: ${{ secrets.SEC_API_URL }}   # npr. https://api.sec-api.io/query
           SEC_API_KEY: ${{ secrets.SEC_API_KEY }}
-          SEC_API_URL: ${{ secrets.SEC_API_URL }}
-          LOOKBACK_HOURS: ${{ env.LOOKBACK_HOURS }}
-          MAX_RESULTS: ${{ env.MAX_RESULTS }}
+          LOOKBACK_HOURS: "168"
         run: |
           python fetch_sec_bullish_secapi.py
 
-      - name: Build merged RSS feed (sec-bullish.xml)
-        run: |
-          echo '<?xml version="1.0" encoding="UTF-8"?>' > sec-bullish.xml
-          echo '<rss version="2.0"><channel><title>SEC Bullish Filings</title>' >> sec-bullish.xml
-          echo '<link>https://iiucko.github.io/sec-bullish-monitor/</link>' >> sec-bullish.xml
-          echo '<description>Automatski bullish SEC filing RSS feed</description>' >> sec-bullish.xml
-          for f in 8K_bullish.csv 13D_13G.csv Form4_buys.csv 10Q_bullish.csv; do
-            if [ -f "$f" ]; then
-              tail -n +2 "$f" | while IFS=, read -r tkr cmp frm dat url cik; do
-                echo "<item><title>${tkr} - ${frm}</title><link>${url}</link><description>${cmp}</description><pubDate>${dat}</pubDate></item>" >> sec-bullish.xml
-              done
-            fi
-          done
-          echo '</channel></rss>' >> sec-bullish.xml
-
       - name: Commit & push outputs
         run: |
-          git config user.name "actions-user"
+          git config user.name  "github-pages"
           git config user.email "actions@github.com"
-          git add . || true
-          git commit -m "update: latest SEC bullish monitor (all categories)" || echo "No changes to commit"
-          git push || echo "No changes to push"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "update: SEC Bullish monitor (all categories)"
+            git push
+          fi
