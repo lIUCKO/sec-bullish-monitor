@@ -1,4 +1,902 @@
-{
-  "count": 0,
-  "filings": []
-}
+[
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:46:48-05:00",
+    "companyName": "Vertiv Holdings Co",
+    "ticker": "VRT",
+    "title": "Form 8-K - Current report - Item 1.01 Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1674101/000119312525261623/0001193125-25-261623-index.htm",
+    "cik": "1674101"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:46:28-05:00",
+    "companyName": "Liquidia Corp",
+    "ticker": "LQDA",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1819576/000110465925105199/0001104659-25-105199-index.htm",
+    "cik": "1819576"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:44:14-05:00",
+    "companyName": "Kenvue Inc.",
+    "ticker": "KVUE",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1944048/000194404825000194/0001944048-25-000194-index.htm",
+    "cik": "1944048"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:42:57-05:00",
+    "companyName": "Kosmos Energy Ltd.",
+    "ticker": "KOS",
+    "title": "Form 8-K - Current report - Item 2.02 Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1509991/000150999125000069/0001509991-25-000069-index.htm",
+    "cik": "1509991"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:35:49-05:00",
+    "companyName": "HEIDRICK & STRUGGLES INTERNATIONAL INC",
+    "ticker": "HSII",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1066605/000162828025047914/0001628280-25-047914-index.htm",
+    "cik": "1066605"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:35:34-05:00",
+    "companyName": "TScan Therapeutics, Inc.",
+    "ticker": "TCRX",
+    "title": "Form 8-K - Current report - Item 2.05 Item 7.01 Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1783328/000119312525261612/0001193125-25-261612-index.htm",
+    "cik": "1783328"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:34:17-05:00",
+    "companyName": "IDEXX LABORATORIES INC /DE",
+    "ticker": "IDXX",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/874716/000110465925105185/0001104659-25-105185-index.htm",
+    "cik": "874716"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:32:28-05:00",
+    "companyName": "SM Energy Co",
+    "ticker": "SM",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/893538/000089353825000137/0000893538-25-000137-index.htm",
+    "cik": "893538"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:31:16-05:00",
+    "companyName": "Qnity Electronics, Inc.",
+    "ticker": "",
+    "title": "Form 8-K - Current report - Item 1.01 Item 2.03 Item 3.03 Item 5.01 Item 5.02 Item 5.03 Item 5.05 Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/2058873/000119312525261603/0001193125-25-261603-index.htm",
+    "cik": "2058873"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:30:32-05:00",
+    "companyName": "DuPont de Nemours, Inc.",
+    "ticker": "DD",
+    "title": "Form 8-K - Current report - Item 1.01 Item 2.01 Item 5.02 Item 7.01 Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1666700/000119312525261601/0001193125-25-261601-index.htm",
+    "cik": "1666700"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:30:27-05:00",
+    "companyName": "Freshpet, Inc.",
+    "ticker": "FRPT",
+    "title": "Form 8-K - Current report - Item 2.02 Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1611647/000161164725000027/0001611647-25-000027-index.htm",
+    "cik": "1611647"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:28:50-05:00",
+    "companyName": "LOEWS CORP",
+    "ticker": "L",
+    "title": "Form 8-K - Current report - Item 5.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/60086/000006008625000179/0000060086-25-000179-index.htm",
+    "cik": "60086"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:27:27-05:00",
+    "companyName": "IREN Ltd",
+    "ticker": "IREN",
+    "title": "Form 8-K - Current report - Item 1.01 Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1878848/000114036125040072/0001140361-25-040072-index.htm",
+    "cik": "1878848"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:26:06-05:00",
+    "companyName": "CNA FINANCIAL CORP",
+    "ticker": "CNA",
+    "title": "Form 8-K - Current report - Item 5.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/21175/000002117525000095/0000021175-25-000095-index.htm",
+    "cik": "21175"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:25:52-05:00",
+    "companyName": "CIVITAS RESOURCES, INC.",
+    "ticker": "CIVI",
+    "title": "Form 8-K - Current report - Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1509589/000110465925105172/0001104659-25-105172-index.htm",
+    "cik": "1509589"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:21:07-05:00",
+    "companyName": "CNA FINANCIAL CORP",
+    "ticker": "CNA",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/21175/000002117525000093/0000021175-25-000093-index.htm",
+    "cik": "21175"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:16:16-05:00",
+    "companyName": "SM Energy Co",
+    "ticker": "SM",
+    "title": "Form 8-K - Current report - Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/893538/000089353825000134/0000893538-25-000134-index.htm",
+    "cik": "893538"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:15:25-05:00",
+    "companyName": "CommScope Holding Company, Inc.",
+    "ticker": "COMM",
+    "title": "Form 8-K - Current report - Item 8.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1517228/000119312525261572/0001193125-25-261572-index.htm",
+    "cik": "1517228"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:09:35-05:00",
+    "companyName": "Norris Industries, Inc.",
+    "ticker": "NRIS",
+    "title": "Form 8-K - Current report - Item 4.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1603793/000149315225020507/0001493152-25-020507-index.htm",
+    "cik": "1603793"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:09:11-05:00",
+    "companyName": "BRISTOL MYERS SQUIBB CO",
+    "ticker": "BMY",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/14272/000114036125040066/0001140361-25-040066-index.htm",
+    "cik": "14272"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:08:52-05:00",
+    "companyName": "Mawson Infrastructure Group Inc.",
+    "ticker": "MIGI",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1218683/000121390025104873/0001213900-25-104873-index.htm",
+    "cik": "1218683"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:08:02-05:00",
+    "companyName": "LOEWS CORP",
+    "ticker": "L",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/60086/000006008625000177/0000060086-25-000177-index.htm",
+    "cik": "60086"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:04:51-05:00",
+    "companyName": "GLEN BURNIE BANCORP",
+    "ticker": "GLBZ",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/890066/000110465925105107/0001104659-25-105107-index.htm",
+    "cik": "890066"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:03:48-05:00",
+    "companyName": "NEWS CORP",
+    "ticker": "NWS",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1564708/000156470825000560/0001564708-25-000560-index.htm",
+    "cik": "1564708"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:03:29-05:00",
+    "companyName": "CompoSecure, Inc.",
+    "ticker": "CMPO",
+    "title": "Form 8-K - Current report - Item 2.02 Item 7.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1823144/000182314425000122/0001823144-25-000122-index.htm",
+    "cik": "1823144"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:03:23-05:00",
+    "companyName": "Artificial Intelligence Technology Solutions Inc.",
+    "ticker": "AITX",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1498148/000149315225020502/0001493152-25-020502-index.htm",
+    "cik": "1498148"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:03:12-05:00",
+    "companyName": "Serina Therapeutics, Inc.",
+    "ticker": "SER",
+    "title": "Form 8-K - Current report - Item 8.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1708599/000170859925000126/0001708599-25-000126-index.htm",
+    "cik": "1708599"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:02:46-05:00",
+    "companyName": "SL GREEN REALTY CORP",
+    "ticker": "SLG",
+    "title": "Form 8-K - Current report - Item 1.01 Item 3.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1040971/000110465925105095/0001104659-25-105095-index.htm",
+    "cik": "1040971"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:02:46-05:00",
+    "companyName": "SL GREEN OPERATING PARTNERSHIP, L.P.",
+    "ticker": "",
+    "title": "Form 8-K - Current report - Item 1.01 Item 3.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1492869/000110465925105095/0001104659-25-105095-index.htm",
+    "cik": "1492869"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:02:32-05:00",
+    "companyName": "DevvStream Corp.",
+    "ticker": "DEVS",
+    "title": "Form 8-K - Current report - Item 1.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1854480/000114036125040062/0001140361-25-040062-index.htm",
+    "cik": "1854480"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-11-03T06:02:08-05:00",
+    "companyName": "Resolute Holdings Management, Inc.",
+    "ticker": "RHLD",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/2039497/000110465925105094/0001104659-25-105094-index.htm",
+    "cik": "2039497"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T21:13:10-04:00",
+    "companyName": "Metsera, Inc.",
+    "ticker": "MTSR",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/2040807/000119312525261203/0001193125-25-261203-index.htm",
+    "cik": "2040807"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T19:52:50-04:00",
+    "companyName": "Profusa, Inc.",
+    "ticker": "PFSA",
+    "title": "Form 8-K - Current report - Item 3.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1859807/000121390025104814/0001213900-25-104814-index.htm",
+    "cik": "1859807"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T19:42:17-04:00",
+    "companyName": "Apollo Debt Solutions BDC",
+    "ticker": "",
+    "title": "Form 8-K - Current report - Item 8.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1837532/000119312525261161/0001193125-25-261161-index.htm",
+    "cik": "1837532"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T19:12:48-04:00",
+    "companyName": "CaliberCos Inc.",
+    "ticker": "CWD",
+    "title": "Form 8-K - Current report - Item 1.01 Item 3.02 Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1627282/000110465925105047/0001104659-25-105047-index.htm",
+    "cik": "1627282"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T19:06:25-04:00",
+    "companyName": "Ares Management Corp",
+    "ticker": "ARES",
+    "title": "Form 8-K - Current report - Item 2.02 Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1176948/000162828025047895/0001628280-25-047895-index.htm",
+    "cik": "1176948"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T18:05:14-04:00",
+    "companyName": "WESTERN ALLIANCE BANCORPORATION",
+    "ticker": "WAL",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1212545/000162828025047885/0001628280-25-047885-index.htm",
+    "cik": "1212545"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:33:35-04:00",
+    "companyName": "Navan, Inc.",
+    "ticker": "NAVN",
+    "title": "Form 8-K - Current report - Item 1.01 Item 5.03 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1639723/000162828025047879/0001628280-25-047879-index.htm",
+    "cik": "1639723"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:28:38-04:00",
+    "companyName": "Vivakor, Inc.",
+    "ticker": "VIVK",
+    "title": "Form 8-K - Current report - Item 1.01 Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1450704/000182912625008779/0001829126-25-008779-index.htm",
+    "cik": "1450704"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:28:26-04:00",
+    "companyName": "T Stamp Inc",
+    "ticker": "IDAI",
+    "title": "Form 8-K - Current report - Item 1.01 Item 3.02 Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1718939/000171893925000153/0001718939-25-000153-index.htm",
+    "cik": "1718939"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:22:21-04:00",
+    "companyName": "KKR Income Opportunities Fund",
+    "ticker": "KIO",
+    "title": "Form 8-K - Current report - Item 5.02",
+    "link": "https://www.sec.gov/Archives/edgar/data/1515940/000119312525260971/0001193125-25-260971-index.htm",
+    "cik": "1515940"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:20:44-04:00",
+    "companyName": "NightFood Holdings, Inc.",
+    "ticker": "NGTF",
+    "title": "Form 8-K - Current report - Item 5.03 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1593001/000149315225020458/0001493152-25-020458-index.htm",
+    "cik": "1593001"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:20:14-04:00",
+    "companyName": "SRx Health Solutions, Inc.",
+    "ticker": "SRXH",
+    "title": "Form 8-K - Current report - Item 1.01 Item 2.03 Item 3.02 Item 5.02 Item 5.03 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1471727/000149315225020457/0001493152-25-020457-index.htm",
+    "cik": "1471727"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:18:08-04:00",
+    "companyName": "Venus Concept Inc.",
+    "ticker": "VERO",
+    "title": "Form 8-K - Current report - Item 1.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1409269/000114036125040035/0001140361-25-040035-index.htm",
+    "cik": "1409269"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:17:41-04:00",
+    "companyName": "Streamex Corp.",
+    "ticker": "STEX",
+    "title": "Form 8-K - Current report - Item 7.01 Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1530766/000149315225020451/0001493152-25-020451-index.htm",
+    "cik": "1530766"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:16:59-04:00",
+    "companyName": "Dynamix Corp III",
+    "ticker": "DNMX",
+    "title": "Form 8-K - Current report - Item 1.01 Item 3.02 Item 5.02 Item 5.03 Item 7.01 Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/2081125/000121390025104760/0001213900-25-104760-index.htm",
+    "cik": "2081125"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:15:10-04:00",
+    "companyName": "LaFayette Acquisition Corp.",
+    "ticker": "LAFA",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/2079106/000121390025104759/0001213900-25-104759-index.htm",
+    "cik": "2079106"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:15:09-04:00",
+    "companyName": "FIRST KEYSTONE CORP",
+    "ticker": "FKYS",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/737875/000073787525000042/0000737875-25-000042-index.htm",
+    "cik": "737875"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:14:30-04:00",
+    "companyName": "IF Bancorp, Inc.",
+    "ticker": "IROQ",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1514743/000094337425000453/0000943374-25-000453-index.htm",
+    "cik": "1514743"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:09:32-04:00",
+    "companyName": "BARNWELL INDUSTRIES INC",
+    "ticker": "BRN",
+    "title": "Form 8-K - Current report - Item 5.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/10048/000114036125040033/0001140361-25-040033-index.htm",
+    "cik": "10048"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:09:28-04:00",
+    "companyName": "American Strategic Investment Co.",
+    "ticker": "NYC",
+    "title": "Form 8-K - Current report - Item 4.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1595527/000110465925105006/0001104659-25-105006-index.htm",
+    "cik": "1595527"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:08:41-04:00",
+    "companyName": "Protagenic Therapeutics, Inc.\\new",
+    "ticker": "PTIX",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1022899/000149315225020444/0001493152-25-020444-index.htm",
+    "cik": "1022899"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:08:02-04:00",
+    "companyName": "WEC ENERGY GROUP, INC.",
+    "ticker": "WEC",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/783325/000110465925105004/0001104659-25-105004-index.htm",
+    "cik": "783325"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:06:49-04:00",
+    "companyName": "NEXSTAR MEDIA GROUP, INC.",
+    "ticker": "NXST",
+    "title": "Form 8-K - Current report - Item 8.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1142417/000119312525260938/0001193125-25-260938-index.htm",
+    "cik": "1142417"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:06:31-04:00",
+    "companyName": "Interactive Strength, Inc.",
+    "ticker": "TRNR",
+    "title": "Form 8-K - Current report - Item 5.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1785056/000119312525260937/0001193125-25-260937-index.htm",
+    "cik": "1785056"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:05:42-04:00",
+    "companyName": "REED'S, INC.",
+    "ticker": "REED",
+    "title": "Form 8-K - Current report - Item 5.03 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1140215/000149315225020441/0001493152-25-020441-index.htm",
+    "cik": "1140215"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:04:12-04:00",
+    "companyName": "VIVIC CORP.",
+    "ticker": "VIVC",
+    "title": "Form 8-K - Current report - Item 5.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1703073/000149315225020440/0001493152-25-020440-index.htm",
+    "cik": "1703073"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:03:09-04:00",
+    "companyName": "Bit Digital, Inc",
+    "ticker": "BTBT",
+    "title": "Form 8-K - Current report - Item 2.02",
+    "link": "https://www.sec.gov/Archives/edgar/data/1710350/000121390025104749/0001213900-25-104749-index.htm",
+    "cik": "1710350"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:01:43-04:00",
+    "companyName": "NATIONAL BEVERAGE CORP",
+    "ticker": "FIZZ",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/69891/000143774925032615/0001437749-25-032615-index.htm",
+    "cik": "69891"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:00:37-04:00",
+    "companyName": "TEGNA INC",
+    "ticker": "TGNA",
+    "title": "Form 8-K - Current report - Item 8.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/39899/000110465925104984/0001104659-25-104984-index.htm",
+    "cik": "39899"
+  },
+  {
+    "formType": "8-K/A",
+    "filedAt": "2025-10-31T17:00:35-04:00",
+    "companyName": "CareCloud, Inc.",
+    "ticker": "CCLD",
+    "title": "Form 8-K/A - Current report: [Amend] - Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1582982/000149315225020427/0001493152-25-020427-index.htm",
+    "cik": "1582982"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:00:32-04:00",
+    "companyName": "StableX Technologies, Inc.",
+    "ticker": "SBLX",
+    "title": "Form 8-K - Current report - Item 5.02",
+    "link": "https://www.sec.gov/Archives/edgar/data/1086745/000149315225020426/0001493152-25-020426-index.htm",
+    "cik": "1086745"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:00:27-04:00",
+    "companyName": "TuHURA Biosciences, Inc./NV",
+    "ticker": "HURA",
+    "title": "Form 8-K - Current report - Item 1.01 Item 2.03 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1498382/000119312525260924/0001193125-25-260924-index.htm",
+    "cik": "1498382"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:00:25-04:00",
+    "companyName": "SIEBERT FINANCIAL CORP",
+    "ticker": "SIEB",
+    "title": "Form 8-K - Current report - Item 1.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/65596/000121390025104746/0001213900-25-104746-index.htm",
+    "cik": "65596"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T17:00:21-04:00",
+    "companyName": "ZYNEX INC",
+    "ticker": "ZYXI",
+    "title": "Form 8-K - Current report - Item 5.02",
+    "link": "https://www.sec.gov/Archives/edgar/data/846475/000110465925104985/0001104659-25-104985-index.htm",
+    "cik": "846475"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:59:05-04:00",
+    "companyName": "KINGSTONE COMPANIES, INC.",
+    "ticker": "KINS",
+    "title": "Form 8-K - Current report - Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/33992/000102177125000145/0001021771-25-000145-index.htm",
+    "cik": "33992"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:55:37-04:00",
+    "companyName": "DOMINION ENERGY, INC",
+    "ticker": "D",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/715957/000119312525260915/0001193125-25-260915-index.htm",
+    "cik": "715957"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:54:22-04:00",
+    "companyName": "INTENSITY THERAPEUTICS, INC.",
+    "ticker": "INTS",
+    "title": "Form 8-K - Current report - Item 1.01 Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1567264/000162828025047855/0001628280-25-047855-index.htm",
+    "cik": "1567264"
+  },
+  {
+    "formType": "8-K/A",
+    "filedAt": "2025-10-31T16:53:23-04:00",
+    "companyName": "HORMEL FOODS CORP /DE/",
+    "ticker": "HRL",
+    "title": "Form 8-K/A - Current report: [Amend] - Item 5.02",
+    "link": "https://www.sec.gov/Archives/edgar/data/48465/000004846525000049/0000048465-25-000049-index.htm",
+    "cik": "48465"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:50:56-04:00",
+    "companyName": "Heritage Distilling Holding Company, Inc.",
+    "ticker": "IPST",
+    "title": "Form 8-K - Current report - Item 3.03 Item 5.03 Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1788230/000178823025000168/0001788230-25-000168-index.htm",
+    "cik": "1788230"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:50:34-04:00",
+    "companyName": "Vestand Inc.",
+    "ticker": "VSTD",
+    "title": "Form 8-K - Current report - Item 4.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1898604/000149315225020411/0001493152-25-020411-index.htm",
+    "cik": "1898604"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:48:40-04:00",
+    "companyName": "RMR GROUP INC.",
+    "ticker": "RMR",
+    "title": "Form 8-K - Current report - Item 8.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1644378/000110465925104971/0001104659-25-104971-index.htm",
+    "cik": "1644378"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:46:25-04:00",
+    "companyName": "Principal Credit Real Estate Income Trust",
+    "ticker": "",
+    "title": "Form 8-K - Current report - Item 7.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/2026448/000202644825000082/0002026448-25-000082-index.htm",
+    "cik": "2026448"
+  },
+  {
+    "formType": "8-K/A",
+    "filedAt": "2025-10-31T16:44:14-04:00",
+    "companyName": "Embassy Bancorp, Inc.",
+    "ticker": "EMYB",
+    "title": "Form 8-K/A - Current report: [Amend] - Item 5.07",
+    "link": "https://www.sec.gov/Archives/edgar/data/1449794/000144979425000029/0001449794-25-000029-index.htm",
+    "cik": "1449794"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:41:27-04:00",
+    "companyName": "EBAY INC",
+    "ticker": "EBAY",
+    "title": "Form 8-K - Current report - Item 7.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1065088/000155278125000382/0001552781-25-000382-index.htm",
+    "cik": "1065088"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:36:24-04:00",
+    "companyName": "Vertical Data Inc.",
+    "ticker": "",
+    "title": "Form 8-K - Current report - Item 8.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/2033264/000149315225020404/0001493152-25-020404-index.htm",
+    "cik": "2033264"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:35:27-04:00",
+    "companyName": "Overland Advantage",
+    "ticker": "",
+    "title": "Form 8-K - Current report - Item 1.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1965934/000119312525260870/0001193125-25-260870-index.htm",
+    "cik": "1965934"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:35:24-04:00",
+    "companyName": "NI Holdings, Inc.",
+    "ticker": "NODK",
+    "title": "Form 8-K - Current report - Item 5.02",
+    "link": "https://www.sec.gov/Archives/edgar/data/1681206/000117494725001316/0001174947-25-001316-index.htm",
+    "cik": "1681206"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:34:32-04:00",
+    "companyName": "BROWN FORMAN CORP",
+    "ticker": "BF.A",
+    "title": "Form 8-K - Current report - Item 5.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/14693/000001469325000101/0000014693-25-000101-index.htm",
+    "cik": "14693"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:33:54-04:00",
+    "companyName": "Bakkt Holdings, Inc.",
+    "ticker": "BKKT",
+    "title": "Form 8-K - Current report - Item 5.02 Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1820302/000162828025047840/0001628280-25-047840-index.htm",
+    "cik": "1820302"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:33:50-04:00",
+    "companyName": "Customers Bancorp, Inc.",
+    "ticker": "CUBI",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1488813/000148881325000096/0001488813-25-000096-index.htm",
+    "cik": "1488813"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:32:48-04:00",
+    "companyName": "Chemours Co",
+    "ticker": "CC",
+    "title": "Form 8-K - Current report - Item 5.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1627223/000119312525260863/0001193125-25-260863-index.htm",
+    "cik": "1627223"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:32:36-04:00",
+    "companyName": "Unite Acquisition 2 Corp.",
+    "ticker": "",
+    "title": "Form 8-K - Current report - Item 5.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1938570/000121390025104712/0001213900-25-104712-index.htm",
+    "cik": "1938570"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:53-04:00",
+    "companyName": "FiscalNote Holdings, Inc.",
+    "ticker": "NOTE",
+    "title": "Form 8-K - Current report - Item 5.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1823466/000119312525260854/0001193125-25-260854-index.htm",
+    "cik": "1823466"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:50-04:00",
+    "companyName": "Reborn Coffee, Inc.",
+    "ticker": "REBN",
+    "title": "Form 8-K - Current report - Item 5.02",
+    "link": "https://www.sec.gov/Archives/edgar/data/1707910/000121390025104707/0001213900-25-104707-index.htm",
+    "cik": "1707910"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:42-04:00",
+    "companyName": "Stellus Private Credit BDC",
+    "ticker": "",
+    "title": "Form 8-K - Current report - Item 3.02",
+    "link": "https://www.sec.gov/Archives/edgar/data/1901037/000110465925104948/0001104659-25-104948-index.htm",
+    "cik": "1901037"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:42-04:00",
+    "companyName": "Aditxt, Inc.",
+    "ticker": "ADTX",
+    "title": "Form 8-K - Current report - Item 3.03 Item 5.03 Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1726711/000121390025104704/0001213900-25-104704-index.htm",
+    "cik": "1726711"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:35-04:00",
+    "companyName": "Hyperscale Data, Inc.",
+    "ticker": "GPUS",
+    "title": "Form 8-K - Current report - Item 3.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/896493/000121465925015705/0001214659-25-015705-index.htm",
+    "cik": "896493"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:31-04:00",
+    "companyName": "GENERATION INCOME PROPERTIES, INC.",
+    "ticker": "GIPR",
+    "title": "Form 8-K - Current report - Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1651721/000119312525260852/0001193125-25-260852-index.htm",
+    "cik": "1651721"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:30-04:00",
+    "companyName": "Pelican Acquisition Corp",
+    "ticker": "PELI",
+    "title": "Form 8-K - Current report - Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/2037431/000182912625008699/0001829126-25-008699-index.htm",
+    "cik": "2037431"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:25-04:00",
+    "companyName": "ATLANTIC INTERNATIONAL CORP.",
+    "ticker": "ATLN",
+    "title": "Form 8-K - Current report - Item 5.03 Item 7.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1605888/000160588825000043/0001605888-25-000043-index.htm",
+    "cik": "1605888"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:18-04:00",
+    "companyName": "California Resources Corp",
+    "ticker": "CRC",
+    "title": "Form 8-K - Current report - Item 1.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1609253/000160925325000083/0001609253-25-000083-index.htm",
+    "cik": "1609253"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:16-04:00",
+    "companyName": "Blackstone Real Estate Income Trust, Inc.",
+    "ticker": "BSTT",
+    "title": "Form 8-K - Current report - Item 7.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1662972/000166297225000177/0001662972-25-000177-index.htm",
+    "cik": "1662972"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:30:12-04:00",
+    "companyName": "MESABI TRUST",
+    "ticker": "MSB",
+    "title": "Form 8-K - Current report - Item 2.02 Item 7.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/65172/000110465925104947/0001104659-25-104947-index.htm",
+    "cik": "65172"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:28:57-04:00",
+    "companyName": "STANLEY BLACK & DECKER, INC.",
+    "ticker": "SWK",
+    "title": "Form 8-K - Current report - Item 5.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/93556/000119312525260847/0001193125-25-260847-index.htm",
+    "cik": "93556"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:27:14-04:00",
+    "companyName": "Spirit AeroSystems Holdings, Inc.",
+    "ticker": "SPR",
+    "title": "Form 8-K - Current report - Item 2.02 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1364885/000136488525000013/0001364885-25-000013-index.htm",
+    "cik": "1364885"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:27:00-04:00",
+    "companyName": "Core Scientific, Inc./tx",
+    "ticker": "CORZ",
+    "title": "Form 8-K - Current report - Item 5.07 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1839341/000114036125040020/0001140361-25-040020-index.htm",
+    "cik": "1839341"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:26:16-04:00",
+    "companyName": "STANDEX INTERNATIONAL CORP/DE/",
+    "ticker": "SXI",
+    "title": "Form 8-K - Current report - Item 5.07",
+    "link": "https://www.sec.gov/Archives/edgar/data/310354/000143774925032597/0001437749-25-032597-index.htm",
+    "cik": "310354"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:23:23-04:00",
+    "companyName": "Blackstone Private Credit Fund",
+    "ticker": "",
+    "title": "Form 8-K - Current report - Item 7.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1803498/000180349825000076/0001803498-25-000076-index.htm",
+    "cik": "1803498"
+  },
+  {
+    "formType": "8-K",
+    "filedAt": "2025-10-31T16:22:04-04:00",
+    "companyName": "NB Bancorp, Inc.",
+    "ticker": "NBBK",
+    "title": "Form 8-K - Current report - Item 8.01 Item 9.01",
+    "link": "https://www.sec.gov/Archives/edgar/data/1979330/000110465925104942/0001104659-25-104942-index.htm",
+    "cik": "1979330"
+  }
+]
