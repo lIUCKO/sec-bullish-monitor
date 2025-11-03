@@ -1,81 +1,66 @@
 import os, json, csv, requests
 from urllib.parse import urlparse
-from datetime import datetime, timedelta, timezone
 
 SEC_API_URL = (os.getenv("SEC_API_URL") or "").strip()
 SEC_API_KEY = (os.getenv("SEC_API_KEY") or "").strip()
 LOOKBACK_HOURS = int(os.getenv("LOOKBACK_HOURS", "168"))
 MAX_RESULTS = int(os.getenv("MAX_RESULTS", "2000"))
 
-# ---- sanity checks ----
 if not SEC_API_URL:
-    raise SystemExit("❌ SEC_API_URL nije postavljen (Settings → Secrets → Actions).")
+    raise SystemExit("❌ SEC_API_URL nije postavljen.")
 if not (SEC_API_URL.startswith("http://") or SEC_API_URL.startswith("https://")):
     raise SystemExit("❌ SEC_API_URL mora početi s http(s)://")
 if not SEC_API_KEY:
     raise SystemExit("❌ SEC_API_KEY nije postavljen.")
 
-def hdr():
-    # Support potvrdio: Authorization header treba koristiti
-    return {"Content-Type": "application/json", "Authorization": f"Bearer {SEC_API_KEY}"}
+def make_headers(mode):
+    if mode == "bearer":
+        return {"Content-Type":"application/json","Authorization":f"Bearer {SEC_API_KEY}"}
+    if mode == "raw":
+        return {"Content-Type":"application/json","Authorization":SEC_API_KEY}
+    raise ValueError("bad mode")
 
-def post_with_auto_fix(url, payload):
-    """
-    Pokuša POST na dani URL.
-    Ako dobije 404, automatski proba alternativu: dodati/ukloniti '/query'.
-    Vraća (response_json, final_url)
-    """
-    def do_post(u):
-        r = requests.post(u, headers=hdr(), json=payload, timeout=60)
-        print(f"HTTP {r.status_code} @ {urlparse(u).netloc}{urlparse(u).path or '/'}")
-        if r.status_code == 404:
-            return None, 404
-        r.raise_for_status()
-        return r.json(), r.status_code
+def try_post(url, payload, mode):
+    h = make_headers(mode)
+    r = requests.post(url, headers=h, json=payload, timeout=60)
+    path = urlparse(url).path or "/"
+    print(f"HTTP {r.status_code} @ {urlparse(url).netloc}{path} | auth={mode}")
+    if r.status_code == 404:
+        return None, 404
+    if r.status_code == 401 or r.status_code == 403:
+        # auth problem – probat ćemo drugi header mode
+        return None, r.status_code
+    r.raise_for_status()
+    return r.json(), r.status_code
 
-    # 1) pokušaj originalni
-    data, code = do_post(url)
-    if code != 404:
-        return data, url
-
-    # 2) ako je 404, probaj alternaciju s /query (dodaj ili ukloni)
-    if url.rstrip("/").endswith("/query"):
-        alt = url.rstrip("/").rsplit("/query", 1)[0] or url  # makni /query
+def auto_request(base_url, payload):
+    # kandidati URL-a
+    if base_url.rstrip("/").endswith("/query"):
+        alt_url = base_url.rstrip("/").rsplit("/query",1)[0] or base_url
     else:
-        alt = url.rstrip("/") + "/query"                     # dodaj /query
+        alt_url = base_url.rstrip("/") + "/query"
+    url_candidates = [base_url, alt_url] if alt_url != base_url else [base_url]
 
-    print(f"🔁 404 fallback: pokušavam {alt}")
-    data, code = do_post(alt)
-    if code == 404:
-        raise SystemExit("❌ 404 na obje varijante URL-a (s /query i bez). Provjeri točan endpoint u SEC-API dashboardu.")
-    return data, alt
+    # kandidati headera
+    auth_modes = ["bearer","raw"]
 
-def sec_fetch(query):
-    data, final_url = post_with_auto_fix(SEC_API_URL, query)
-    # SEC-API vraća različite oblike: {"filings":[...]} ili {"hits":{"hits":[...]}}
-    if isinstance(data, dict):
-        if "filings" in data:
-            return data["filings"]
-        if "hits" in data and "hits" in data["hits"]:
-            return [h.get("_source", h) for h in data["hits"]["hits"]]
-    if isinstance(data, list):
-        return data
-    return []
+    last_err = None
+    for u in url_candidates:
+        for m in auth_modes:
+            try:
+                data, code = try_post(u, payload, m)
+                if data is not None:
+                    print(f"✅ USING url={u} auth={m}")
+                    return data
+                last_err = (u, m, code)
+            except requests.HTTPError as e:
+                last_err = (u, m, f"HTTPError {e.response.status_code}")
+            except Exception as e:
+                last_err = (u, m, f"{type(e).__name__}: {e}")
 
-def save(rows, basename):
-    if not rows:
-        print(f"⚠️ 0 results -> {basename}.csv/json")
-        open(f"{basename}.json","w").write("[]")
-        open(f"{basename}.csv","w").write("")
-        return
-    keys = sorted(rows[0].keys())
-    with open(f"{basename}.json","w",encoding="utf-8") as j:
-        json.dump(rows, j, ensure_ascii=False, indent=2)
-    with open(f"{basename}.csv","w",newline="",encoding="utf-8") as c:
-        w = csv.DictWriter(c, fieldnames=keys); w.writeheader(); w.writerows(rows)
-    print(f"Saved {len(rows)} -> {basename}.json, {basename}.csv")
+    raise SystemExit(f"❌ Nije uspjelo ni s jednom kombinacijom. Zadnja greška: {last_err}")
 
-def norm(f):
+def normalize(f):
     def g(*ks):
         for k in ks:
             v = f.get(k)
@@ -90,38 +75,63 @@ def norm(f):
         "cik": g("cik","issuerCik","companyCik"),
     }
 
-def q_8k(hours=LOOKBACK_HOURS):
+def save(rows, basename):
+    if not rows:
+        print(f"⚠️ 0 results -> {basename}.csv/json")
+        open(f"{basename}.json","w").write("[]")
+        open(f"{basename}.csv","w").write("")
+        return
+    keys = sorted(rows[0].keys())
+    with open(f"{basename}.json","w",encoding="utf-8") as j:
+        json.dump(rows, j, ensure_ascii=False, indent=2)
+    with open(f"{basename}.csv","w",newline="",encoding="utf-8") as c:
+        w = csv.DictWriter(c, fieldnames=keys); w.writeheader(); w.writerows(rows)
+    print(f"Saved {len(rows)} -> {basename}.json, {basename}.csv")
+
+def q_8k(h=LOOKBACK_HOURS):
     return {
-      "query":{"query_string":{"query":f'formType:"8-K" AND filedAt:[NOW-{hours}HOURS TO NOW] AND items:("2.02" OR "7.01" OR "1.01" OR "5.02" OR "8.01")'}},
+      "query":{"query_string":{"query":f'formType:"8-K" AND filedAt:[NOW-{h}HOURS TO NOW] AND items:("2.02" OR "7.01" OR "1.01" OR "5.02" OR "8.01")'}},
       "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
     }
 
-def q_13d13g(hours=LOOKBACK_HOURS):
+def q_13d13g(h=LOOKBACK_HOURS):
     return {
-      "query":{"query_string":{"query":f'formType:("SC 13D" OR "SC 13D/A" OR "SC 13G" OR "SC 13G/A") AND filedAt:[NOW-{hours}HOURS TO NOW]'}},
+      "query":{"query_string":{"query":f'formType:("SC 13D" OR "SC 13D/A" OR "SC 13G" OR "SC 13G/A") AND filedAt:[NOW-{h}HOURS TO NOW]'}},
       "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
     }
 
-def q_form4(hours=LOOKBACK_HOURS):
+def q_form4(h=LOOKBACK_HOURS):
     return {
-      "query":{"query_string":{"query":f'formType:"4" AND filedAt:[NOW-{hours}HOURS TO NOW]'}},
+      "query":{"query_string":{"query":f'formType:"4" AND filedAt:[NOW-{h}HOURS TO NOW]'}},
       "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
     }
 
-def q_10q(hours=LOOKBACK_HOURS):
+def q_10q(h=LOOKBACK_HOURS):
     return {
-      "query":{"query_string":{"query":f'formType:"10-Q" AND filedAt:[NOW-{hours}HOURS TO NOW]'}},
+      "query":{"query_string":{"query":f'formType:"10-Q" AND filedAt:[NOW-{h}HOURS TO NOW]'}},
       "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
     }
+
+def fetch_norm(query, name):
+    data = auto_request(SEC_API_URL, query)
+    # SEC-API shape
+    if isinstance(data, dict) and "filings" in data:
+        rows = [normalize(x) for x in data["filings"]]
+    elif isinstance(data, dict) and "hits" in data and "hits" in data["hits"]:
+        rows = [normalize(h.get("_source", h)) for h in data["hits"]["hits"]]
+    elif isinstance(data, list):
+        rows = [normalize(x) for x in data]
+    else:
+        rows = []
+    save(rows, name)
+    return len(rows)
 
 def run():
     total = 0
-
-    data = sec_fetch(q_8k()); rows = [norm(x) for x in data]; save(rows, "8K_bullish"); total += len(rows)
-    data = sec_fetch(q_13d13g()); rows = [norm(x) for x in data]; save(rows, "13D_13G"); total += len(rows)
-    data = sec_fetch(q_form4());  rows = [norm(x) for x in data]; save(rows, "Form4_buys"); total += len(rows)
-    data = sec_fetch(q_10q());    rows = [norm(x) for x in data]; save(rows, "10Q_bullish"); total += len(rows)
-
+    total += fetch_norm(q_8k(), "8K_bullish")
+    total += fetch_norm(q_13d13g(), "13D_13G")
+    total += fetch_norm(q_form4(), "Form4_buys")
+    total += fetch_norm(q_10q(), "10Q_bullish")
     print(f"✅ Total normalized rows: {total}")
 
 if __name__ == "__main__":
