@@ -6,10 +6,10 @@ SEC Bullish Monitor (SEC-API)
 Autor: GPT-5
 
 Opis:
- - Povezuje se na SEC API endpoint (https://api.sec-api.io/query)
+ - Povezuje se na SEC API (https://api.sec-api.io/query)
  - Povlači bullish kategorije (8-K bullish, 8-K agreements, Form4 buys, 10-Q bullish, 13D/13G)
  - Sprema rezultate u JSON + CSV
- - Generira RSS feed (sec-bullish.xml) + kopiju u public/feed.xml ako postoji
+ - Generira RSS feed (sec-bullish.xml)
 
 ENV VARS (GitHub Secrets):
   SEC_API_URL  = https://api.sec-api.io
@@ -35,10 +35,7 @@ LOOKBACK_HOURS = int(os.getenv("LOOKBACK_HOURS", "168"))
 if not SEC_API_KEY:
     raise SystemExit("❌ ERROR: SEC_API_KEY nije postavljen u GitHub Secrets.")
 
-HEADERS = {
-    "Authorization": SEC_API_KEY,
-    "Content-Type": "application/json"
-}
+print(f"✅ SEC_API_URL = {SEC_API_URL}")
 
 # --- HELPER FUNKCIJE ---
 def now_utc_iso():
@@ -84,15 +81,38 @@ def normalize_filing(f: Dict[str, Any]) -> Dict[str, Any]:
         "cik": cik
     }
 
-# --- NOVI endpoint handler ---
+# --- UNIVERSAL ENDPOINT HANDLER ---
 def post_query(payload: Dict[str, Any]) -> Dict[str, Any]:
-    # ako u secretu već postoji /query, ne dodaj ponovo
-    endpoint = SEC_API_URL if SEC_API_URL.endswith("/query") else f"{SEC_API_URL}/query"
-    print(f"POST {endpoint}  (Authorization header)")
-    r = requests.post(endpoint, headers=HEADERS, json=payload, timeout=60)
-    r.raise_for_status()
-    return r.json()
+    """
+    Pokušava sve moguće kombinacije SEC API endpointa i headera.
+    """
+    base = (SEC_API_URL or "https://api.sec-api.io").replace("\r", "").replace("\n", "").strip().rstrip("/")
 
+    candidates = [
+        (f"{base}/query", {"Authorization": SEC_API_KEY, "Content-Type": "application/json"}),
+        (f"{base}/query", {"x-api-key": SEC_API_KEY, "Content-Type": "application/json"}),
+        (f"{base}",       {"Authorization": SEC_API_KEY, "Content-Type": "application/json"}),
+        (f"{base}",       {"x-api-key": SEC_API_KEY, "Content-Type": "application/json"}),
+    ]
+
+    last_err = None
+    for url, hdr in candidates:
+        try:
+            print(f"POST {url}  ({'Authorization' if 'Authorization' in hdr else 'x-api-key'} header)")
+            r = requests.post(url, headers=hdr, json=payload, timeout=60)
+            r.raise_for_status()
+            return r.json()
+        except requests.HTTPError as e:
+            status = getattr(e.response, "status_code", "?")
+            print(f"→ HTTP {status} @ {url}; pokušavam iduću kombinaciju…")
+            last_err = e
+        except Exception as e:
+            print(f"→ error @ {url}: {e}; pokušavam iduću kombinaciju…")
+            last_err = e
+
+    raise last_err if last_err else RuntimeError("SEC API: sve kombinacije su zakazale")
+
+# --- QUERY RUNNER ---
 def run_query_to_files(name: str, lucene_query: str, size: int = 100) -> List[Dict[str, Any]]:
     payload = {
         "query": {"query_string": {"query": lucene_query}},
@@ -117,24 +137,24 @@ def q_8k_bullish(h: int) -> str:
         "FDA approval", "breakthrough", "uplisting", "reinstates dividend"
     ]
     expr = "(" + " OR ".join([f"\"{t}\"" for t in terms]) + ")"
-    return f'formType:"8-K" AND filedAt:{date_range_lucene(h)} AND {expr} NOT ("ATM" OR "at-the-market" OR "warrant" OR "S-1")'
+    return f'formType:"8-K" AND filedAt:[now-{h}h TO now] AND {expr} NOT ("ATM" OR "at-the-market" OR "warrant" OR "S-1")'
 
 def q_8k_material_agreements(h: int) -> str:
-    return f'formType:"8-K" AND filedAt:{date_range_lucene(h)} AND (Item 1.01 OR "material definitive agreement") NOT ("ATM" OR "at-the-market")'
+    return f'formType:"8-K" AND filedAt:[now-{h}h TO now] AND (Item 1.01 OR "material definitive agreement") NOT ("ATM" OR "at-the-market")'
 
 def q_form4_buys(h: int) -> str:
-    return f'formType:"4" AND filedAt:{date_range_lucene(h)} AND transactionCode:"P"'
+    return f'formType:"4" AND filedAt:[now-{h}h TO now] AND transactionCode:"P"'
 
 def q_10q_bullish(h: int) -> str:
-    return f'formType:"10-Q" AND filedAt:{date_range_lucene(h)} AND ("raises guidance" OR "increase production" OR "improved liquidity" OR "improved gross margin")'
+    return f'formType:"10-Q" AND filedAt:[now-{h}h TO now] AND ("raises guidance" OR "increase production" OR "improved liquidity" OR "improved gross margin")'
 
 def q_13d_13g(h: int) -> str:
-    return f'(formType:"SC 13D" OR formType:"SC 13G") AND filedAt:{date_range_lucene(h)}'
+    return f'(formType:"SC 13D" OR formType:"SC 13G") AND filedAt:[now-{h}h TO now]'
 
-# --- RSS ---
+# --- RSS GENERATOR ---
 def build_rss(rows: List[Dict[str, Any]]) -> str:
     def esc(s: str): return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    def sort_key(r): 
+    def sort_key(r):
         try: return time.mktime(dt.datetime.strptime(r["filedAt"].replace("Z",""), "%Y-%m-%dT%H:%M:%S").timetuple())
         except: return 0
     items = sorted(rows, key=sort_key, reverse=True)
