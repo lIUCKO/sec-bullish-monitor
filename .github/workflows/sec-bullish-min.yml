@@ -3,7 +3,7 @@ name: SEC Bullish Monitor PRO + RSS
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/30 * * * *"   # svakih 30 min
+    - cron: "*/30 * * * *"   # pokretanje svakih 30 min
 
 permissions:
   contents: write
@@ -11,6 +11,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,22 +24,63 @@ jobs:
       - name: Install deps
         run: python -m pip install --upgrade requests
 
-      - name: Fetch & save all bullish categories (JSON/CSV)
+      # ─────────────────────────────────────────────────────────────
+      # SANITY CHECK: provjeri endpoint + ključ i ispiši poruku servera
+      # ─────────────────────────────────────────────────────────────
+      - name: Sanity check SEC API auth
         env:
-          SEC_API_URL: ${{ secrets.SEC_API_URL }}   # npr. https://api.sec-api.io/query
+          SEC_API_URL: ${{ secrets.SEC_API_URL }}
           SEC_API_KEY: ${{ secrets.SEC_API_KEY }}
-          LOOKBACK_HOURS: "168"
+        run: |
+          python - <<'PY'
+          import os, requests
+
+          base = (os.getenv("SEC_API_URL") or "").strip().replace("\r","").replace("\n","").rstrip("/")
+          key  = (os.getenv("SEC_API_KEY") or "").strip()
+
+          if not base or not key:
+              raise SystemExit("❌ SEC_API_URL ili SEC_API_KEY nedostaje.")
+
+          payload = {
+            "query":{"query_string":{"query":'formType:"8-K" AND filedAt:[now-24h TO now]'}},
+            "from":0,"size":1
+          }
+
+          attempts = [
+            (f"{base}",       {"Authorization": key, "Content-Type":"application/json"}),
+            (f"{base}/query", {"Authorization": key, "Content-Type":"application/json"}),
+            (f"{base}/query", {"x-api-key": key,   "Content-Type":"application/json"}),
+          ]
+
+          for url, hdr in attempts:
+              try:
+                  hname = "Authorization" if "Authorization" in hdr else "x-api-key"
+                  r = requests.post(url, headers=hdr, json=payload, timeout=30)
+                  print(f"\nTRY {url} | header={hname} | HTTP {r.status_code}")
+                  print((r.text or "")[:800])
+              except Exception as e:
+                  print(f"\nERR {url}: {e}")
+          PY
+
+      # ─────────────────────────────────────────────────────────────
+      # GLAVNI KORAK: povuci podatke i spremi JSON/CSV + RSS
+      # ─────────────────────────────────────────────────────────────
+      - name: Fetch & save all bullish categories (JSON/CSV + RSS)
+        env:
+          SEC_API_URL: ${{ secrets.SEC_API_URL }}
+          SEC_API_KEY: ${{ secrets.SEC_API_KEY }}
+          LOOKBACK_HOURS: ${{ secrets.LOOKBACK_HOURS }}
         run: |
           python fetch_sec_bullish_secapi.py
 
       - name: Commit & push outputs
         run: |
-          git config user.name  "github-pages"
+          git config user.name  "github-actions"
           git config user.email "actions@github.com"
           git add -A
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "update: SEC Bullish monitor (all categories)"
+            git commit -m "update: SEC Bullish monitor (data + RSS)"
             git push
           fi
