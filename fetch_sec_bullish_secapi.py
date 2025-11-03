@@ -1,219 +1,265 @@
 #!/usr/bin/env python3
-"""
-SEC Bullish Monitor — sec-api.io
-- Povlači Form 4 (A/P) i 8-K s bullish signalima (buyback/guidance/agreement/merger/acquisition)
-- Sprema: data/history.jsonl, data/bullish_latest.json, public/feed.xml
-
-ENV:
-  SEC_API_KEY      (obavezno)
-  SEC_API_URL      (opcionalno) npr. https://api.sec-api.io  ili  https://api.sec-api.io/query
-  AUTH_SCHEME      (opcionalno) 'x-api-key' (default) ili 'Bearer'
-  SEC_USER_AGENT   (opcionalno)
-"""
-
-import os, re, json, datetime, html, hashlib, sys, textwrap
+import os, sys, json, time
+from datetime import datetime, timedelta, timezone
 import requests
+import pandas as pd
 
-# ---------- postavke i mape ----------
-OUT_DIR = "public"
-DATA_DIR = "data"
-os.makedirs(OUT_DIR, exist_ok=True)
-os.makedirs(DATA_DIR, exist_ok=True)
+SEC_API_URL = os.getenv("SEC_API_URL", "").strip()
+SEC_API_KEY = os.getenv("SEC_API_KEY", "").strip()
+AUTH_SCHEME = (os.getenv("AUTH_SCHEME") or "bearer").lower()
+LOOKBACK_HOURS = int(os.getenv("LOOKBACK_HOURS", "72"))
+MAX_RESULTS = int(os.getenv("MAX_RESULTS", "2000"))
+OUT_DIR = os.getenv("OUT_DIR", ".")
+RSS_FILE = os.getenv("RSS_FILE", "sec-bullish.xml")
 
-SEC_API_KEY = (os.getenv("SEC_API_KEY") or "").strip()
-if not SEC_API_KEY:
-    print("ERROR: SEC_API_KEY nije postavljen.", file=sys.stderr)
-    sys.exit(2)
+if not SEC_API_URL or not SEC_API_KEY:
+    print("ERROR: SEC_API_URL i/ili SEC_API_KEY nisu postavljeni (Secrets)!", file=sys.stderr)
+    sys.exit(1)
 
-# default na root endpoint (jer neki računi NEMAJU /query)
-SEC_API_URL = (os.getenv("SEC_API_URL") or "https://api.sec-api.io").strip().rstrip("/")
-AUTH_SCHEME  = (os.getenv("AUTH_SCHEME") or "x-api-key").strip()  # default: x-api-key
-USER_AGENT   = os.getenv("SEC_USER_AGENT") or "sec-bullish-monitor/1.0 (+contact: you@example.com)"
-
-BASE_HEADERS = {"User-Agent": USER_AGENT, "Accept": "application/json"}
-
-KEYWORDS_8K = [
-    r"buyback", r"repurchase", r"share repurchase", r"stock repurchase",
-    r"raises?\s+guidance", r"guidance\s+(raise|increas)", r"outlook\s+(raise|increas)",
-    r"agreement", r"definitive\s+agreement", r"strategic\s+partnership",
-    r"merger", r"acquisition", r"acquire",
-]
-
-# ---------- util ----------
-
-def auth_headers():
-    h = dict(BASE_HEADERS)
-    if AUTH_SCHEME.lower() == "x-api-key":
+def headers():
+    h = {"Content-Type": "application/json"}
+    if AUTH_SCHEME == "x-api-key":
         h["x-api-key"] = SEC_API_KEY
     else:
-        h["Authorization"] = f"{AUTH_SCHEME} {SEC_API_KEY}"
+        # default bearer
+        h["Authorization"] = f"Bearer {SEC_API_KEY}"
     return h
 
-def try_post(url: str, payload: dict):
-    """Pokušaj POST i vrati (ok, response or text snippet, status_code)."""
-    try:
-        r = requests.post(url, headers=auth_headers(), json=payload, timeout=60)
-    except requests.RequestException as e:
-        return False, f"Request error: {e}", None
-    if 200 <= r.status_code < 300:
-        try:
-            return True, r.json(), r.status_code
-        except Exception:
-            return False, f"Invalid JSON: {r.text[:500]}", r.status_code
-    else:
-        return False, f"HTTP {r.status_code}: {r.text[:500]}", r.status_code
+def sec_query(payload: dict):
+    r = requests.post(SEC_API_URL, headers=headers(), data=json.dumps(payload), timeout=60)
+    print(f"HTTP: {r.status_code} | len(query): {payload.get('size')}")
+    r.raise_for_status()
+    data = r.json()
+    # SEC-API vraća {"hits": {"hits": [...]}} ili {"filings": [...]}, ovisno o endpointu
+    if isinstance(data, dict) and "hits" in data and "hits" in data["hits"]:
+        return [h["_source"] if "_source" in h else h for h in data["hits"]["hits"]]
+    if isinstance(data, dict) and "filings" in data:
+        return data["filings"]
+    # fallback – ako je već lista
+    if isinstance(data, list):
+        return data
+    return []
 
-def call_sec_api(payload: dict):
-    """
-    Robustan poziv s fallback-om:
-      1) SEC_API_URL (kakav je postavljen)
-      2) SEC_API_URL + '/query'   (ako prvo ne radi)
-    """
-    candidates = [SEC_API_URL]
-    if not SEC_API_URL.endswith("/query"):
-        candidates.append(SEC_API_URL + "/query")
+def now_range(hours):
+    return (datetime.now(timezone.utc) - timedelta(hours=hours), datetime.now(timezone.utc))
 
-    last_err = ""
-    for u in candidates:
-        print(f"[sec-api] Try URL: {u}")
-        ok, resp, code = try_post(u, payload)
-        if ok:
-            return resp
-        # ako je baš 404/405/400 i “Cannot POST /query”, probaj idući kandidat
-        last_err = f"{resp}"
-        print(f"[sec-api] Fail at {u} -> {last_err}")
+SINCE, UNTIL = now_range(LOOKBACK_HOURS)
+since_str = SINCE.strftime("%Y-%m-%dT%H:%M:%SZ")
+until_str = UNTIL.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    raise RuntimeError(f"SEC API call failed. Last error: {last_err}")
+def save_outputs(name, rows):
+    json_path = os.path.join(OUT_DIR, f"{name}.json")
+    csv_path = os.path.join(OUT_DIR, f"{name}.csv")
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False, indent=2)
+    df = pd.DataFrame(rows)
+    df.to_csv(csv_path, index=False)
+    print(f"Saved {len(rows)} -> {os.path.basename(json_path)},  {os.path.basename(csv_path)}")
+    return json_path, csv_path
 
-def sha1_id(title, link):
-    return hashlib.sha1((title + "|" + link).encode()).hexdigest()
+# ---------- FILTER FUNKCIJE ----------
 
-def build_rss(items, out_path):
-    now = datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")
-    xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<rss version="2.0"><channel>']
-    xml += [
-        "<title>SEC Bullish Monitor (sec-api)</title>",
-        "<description>Form 4 A/P + 8-K bullish keywords</description>",
-        f"<lastBuildDate>{now}</lastBuildDate>",
-        "<link>https://www.sec.gov/</link>",
-    ]
-    for it in items[:120]:
-        title = html.escape(it["title"])
-        link  = html.escape(it["link"])
-        pub   = html.escape(it.get("updated",""))
-        desc  = html.escape(json.dumps({"reason": it["reason"], "evidence": it.get("evidence",[])}, ensure_ascii=False))
-        xml.append(f"<item><title>{title}</title><link>{link}</link><pubDate>{pub}</pubDate><description>{desc}</description></item>")
-    xml.append("</channel></rss>")
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(xml))
+BULLISH_TERMS = [
+  "guidance raised","raised guidance","increase guidance","increased guidance",
+  "increased outlook","improved outlook","raise outlook","boost outlook",
+  "share repurchase","buyback","repurchase program","authorization to repurchase",
+  "material agreement","strategic partnership","license agreement","licensing agreement",
+  "collaboration","supply agreement","commercial agreement","cooperation",
+  "uplist","special dividend","initial dividend"
+]
 
-def normalize_hit(hit: dict):
-    # toleriraj različite formate odgovora
-    h = hit or {}
-    if "filing" in h and isinstance(h["filing"], dict):
-        h = h["filing"]
+def is_8k_bullish(f):
+    items = " ".join([str(i) for i in f.get("items",[])])
+    text = " ".join([
+        str(f.get("documentText") or ""),
+        str(f.get("summary") or ""),
+        str(f.get("text") or ""),
+        str(f.get("documents", "")),
+    ]).lower()
+    hit_item = any(x in items for x in ["2.02","7.01","1.01"])
+    hit_text = any(k in text for k in BULLISH_TERMS)
+    return hit_item or hit_text
 
-    form = (h.get("formType") or h.get("form") or "").upper()
-    filed_at = h.get("filedAt") or h.get("filingDate") or h.get("date") or ""
-    company = h.get("companyName") or h.get("issuerName") or h.get("title") or ""
-    link = h.get("filingUrl") or h.get("link") or h.get("htmlUrl") or h.get("url") or ""
-    tx_codes = []
-    txs = h.get("transactions") or h.get("transactionCoding") or []
-    if isinstance(txs, dict): txs = [txs]
-    if isinstance(txs, list):
-        for t in txs:
-            c = (t.get("transactionCode") or t.get("code") or "").upper()
-            if c: tx_codes.append(c)
-    text_fields = " ".join(str(h.get(k,"")) for k in ("description","text","exhibitText","documentsText","body"))
-    return {"form": form, "filedAt": filed_at, "company": company, "link": link, "tx_codes": tx_codes, "text_blob": text_fields}
+def is_8k_material_agreement(f):
+    items = " ".join([str(i) for i in f.get("items",[])])
+    text = " ".join([
+        str(f.get("documentText") or ""),
+        str(f.get("summary") or ""),
+        str(f.get("text") or ""),
+    ]).lower()
+    return "1.01" in items or "material agreement" in text
 
-def is_bullish(n):
-    if n["form"] == "4":
-        ap = any(c in ("A","P") for c in n["tx_codes"])
-        return ap, "Form 4 with A/P" if ap else "Form 4 without A/P", []
-    if n["form"].startswith("8-K"):
-        low = n["text_blob"].lower()
-        for kw in KEYWORDS_8K:
-            if re.search(kw, low, flags=re.I):
-                return True, f"8-K keywords match ({kw})", []
-        return False, "8-K no bullish keywords", []
-    return False, "Other form", []
+def is_form4_buy(tx):
+    code = (tx.get("transactionCode") or "").upper()
+    sh = float(tx.get("transactionShares") or 0)
+    price = float(tx.get("transactionPricePerShare") or 0)
+    return code in {"P","A"} and (sh > 0 or price > 0)
 
-# ---------- glavni tok ----------
+def is_13_position(f):
+    form = (f.get("formType") or "").upper()
+    return form in {"SC 13D","SC 13D/A","SC 13G","SC 13G/A"}
 
-def run():
-    # Minimalni query kompatibilan s većinom planova sec-api.io
-    query = {
-        "query": "formType:4 OR formType:8-K",
-        "from": "0",
-        "size": "100",
-        "sort": [{ "filedAt": { "order": "desc" } }]
+def normalize_row(f):
+    # pokušaj standardizirati osnovne stupce
+    cik = f.get("cik") or f.get("issuerCik") or f.get("companyCik") or ""
+    ticker = (f.get("ticker") or f.get("issuerTradingSymbol") or f.get("companyTicker") or "")
+    company = (f.get("companyName") or f.get("issuerName") or f.get("companyNameLong") or "")
+    form = f.get("formType") or f.get("form") or ""
+    filed = f.get("filedAt") or f.get("filingDate") or f.get("acceptedDateTime") or ""
+    url = f.get("linkToFilingDetails") or f.get("linkToFiling") or f.get("documentUrl") or ""
+    return {
+        "cik": cik, "ticker": ticker, "company": company,
+        "form": form, "filedAt": filed, "url": url
     }
-    print("[sec-api] Query payload:", json.dumps(query)[:400])
 
-    data = call_sec_api(query)
+# ---------- QUERY-JI ----------
 
-    # Normaliziraj listu pogodaka iz raznih formata
-    hits = (
-        data.get("filings")
-        or data.get("data")
-        or data.get("hits")
-        or data.get("items")
-        or []
-    )
-    if isinstance(hits, dict) and "hits" in hits:
-        hits = hits["hits"]
+def q_form4(hours=LOOKBACK_HOURS):
+    return {
+      "query": {
+        "query_string": {
+          "query": f'formType:"4" AND filedAt:[NOW-{hours}HOURS TO NOW] AND (nonDerivativeTable.transactionTable.transaction.transactionCode:(P OR A))'
+        }
+      },
+      "from": 0, "size": MAX_RESULTS, "sort": [{"filedAt": {"order":"desc"}}]
+    }
 
-    items = []
-    for raw in hits:
-        n = normalize_hit(raw)
-        ok, reason, evidence = is_bullish(n)
+def q_8k(hours=LOOKBACK_HOURS):
+    terms = "\"buyback\" OR \"share repurchase\" OR \"guidance raised\" OR \"increased outlook\" OR \"material agreement\" OR partnership OR collaboration OR licensing"
+    return {
+      "query": {
+        "query_string": {
+          "query": f'formType:"8-K" AND filedAt:[NOW-{hours}HOURS TO NOW] AND (items:("2.02" OR "7.01" OR "1.01") OR text:({terms}))'
+        }
+      },
+      "from": 0, "size": MAX_RESULTS, "sort": [{"filedAt": {"order":"desc"}}]
+    }
+
+def q_13(hours=LOOKBACK_HOURS):
+    return {
+      "query": {
+        "query_string": {
+          "query": f'(formType:("SC 13D" OR "SC 13D/A" OR "SC 13G" OR "SC 13G/A")) AND filedAt:[NOW-{hours}HOURS TO NOW]'
+        }
+      },
+      "from": 0, "size": MAX_RESULTS, "sort": [{"filedAt": {"order":"desc"}}]
+    }
+
+def q_10q(hours=LOOKBACK_HOURS):
+    # širi 10-Q, kasnije dodatno filtriramo po “raised”/“increase” u MD&A
+    return {
+      "query": {
+        "query_string": {
+          "query": f'formType:"10-Q" AND filedAt:[NOW-{hours}HOURS TO NOW]'
+        }
+      },
+      "from": 0, "size": MAX_RESULTS, "sort": [{"filedAt": {"order":"desc"}}]
+    }
+
+# ---------- MAIN FETCH ----------
+
+def fetch_form4_buys():
+    raw = sec_query(q_form4())
+    print(f"Fetched Form4 raw: {len(raw)}")
+    rows = []
+    for f in raw:
+        txs = []
+        # SEC-API zna imati transakcije na više mjesta – pokušaj pronaći listu
+        try:
+            txs = f.get("nonDerivativeTable",{}).get("transactionTable",{}).get("transaction",[])
+            if isinstance(txs, dict):
+                txs = [txs]
+        except Exception:
+            txs = []
+        ok = any(is_form4_buy(tx) for tx in txs) if txs else False
         if ok:
-            title = f"{n['form']} - {n['company']}".strip(" -")
-            rec = {
-                "title": title,
-                "link": n["link"],
-                "updated": n["filedAt"],
-                "reason": reason,
-                "evidence": evidence,
-                "id": sha1_id(title, n["link"] or title),
-            }
-            items.append(rec)
+            rows.append(normalize_row(f))
+    print(f"After filter (Form4 buys): {len(rows)}")
+    return rows
 
-    # deduplikacija
-    seen, uniq = set(), []
-    for it in items:
-        if it["id"] in seen: 
-            continue
-        seen.add(it["id"]); uniq.append(it)
+def fetch_8k_bullish():
+    raw = sec_query(q_8k())
+    print(f"Fetched 8-K raw: {len(raw)}")
+    rows = [normalize_row(f) for f in raw if is_8k_bullish(f)]
+    print(f"After filter (8-K bullish): {len(rows)}")
+    return rows
 
-    # povijest
-    hist = os.path.join(DATA_DIR, "history.jsonl")
-    existing = set()
-    if os.path.exists(hist):
-        with open(hist, "r", encoding="utf-8") as f:
-            for line in f:
-                try:
-                    existing.add(json.loads(line).get("id",""))
-                except:
-                    pass
+def fetch_8k_material_agreements():
+    raw = sec_query(q_8k())
+    rows = [normalize_row(f) for f in raw if is_8k_material_agreement(f)]
+    print(f"After filter (8-K material agreements): {len(rows)}")
+    return rows
 
-    new_items = [x for x in uniq if x["id"] not in existing]
-    if new_items:
-        with open(hist, "a", encoding="utf-8") as f:
-            for x in new_items:
-                f.write(json.dumps(x, ensure_ascii=False) + "\n")
+def fetch_13D_13G():
+    raw = sec_query(q_13())
+    print(f"Fetched 13D/13G raw: {len(raw)}")
+    rows = [normalize_row(f) for f in raw if is_13_position(f)]
+    print(f"After filter (13D/13G): {len(rows)}")
+    return rows
 
-    with open(os.path.join(DATA_DIR, "bullish_latest.json"), "w", encoding="utf-8") as f:
-        json.dump(uniq, f, ensure_ascii=False, indent=2)
+def fetch_10q_bullish():
+    raw = sec_query(q_10q())
+    print(f"Fetched 10-Q raw: {len(raw)}")
+    rows = []
+    for f in raw:
+        text = " ".join([
+            str(f.get("documentText") or ""),
+            str(f.get("summary") or ""),
+            str(f.get("text") or "")
+        ]).lower()
+        bull = any(k in text for k in ["raised", "increase", "improve", "buyback", "repurchase"])
+        if bull:
+            rows.append(normalize_row(f))
+    print(f"After filter (10-Q bullish): {len(rows)}")
+    return rows
 
-    build_rss(uniq, os.path.join(OUT_DIR, "feed.xml"))
-    print(f"Done. Bullish items: {len(uniq)}")
+def build_rss(all_items, out_file):
+    # minimalni RSS za feed čitače
+    from xml.sax.saxutils import escape
+    site = "https://iiucko.github.io/sec-bullish-monitor/"
+    rss_items = []
+    for it in sorted(all_items, key=lambda x: x.get("filedAt",""), reverse=True)[:500]:
+        title = escape(f"{it.get('ticker') or it.get('company','?')} — {it.get('form','')}")
+        link = escape(it.get("url") or site)
+        pub = escape(it.get("filedAt") or "")
+        desc = escape(f"{it.get('company','')} | CIK {it.get('cik','')}")
+        rss_items.append(f"<item><title>{title}</title><link>{link}</link><pubDate>{pub}</pubDate><description>{desc}</description></item>")
+    rss = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>SEC Bullish Monitor — PRO</title>
+  <link>{site}</link>
+  <description>Automatski bullish SEC feed (Form 4 buys, 8-K bullish, 13D/G, 10-Q bullish)</description>
+  {''.join(rss_items)}
+</channel>
+</rss>
+"""
+    with open(out_file, "w", encoding="utf-8") as f:
+        f.write(rss)
+    print(f"RSS built -> {out_file} (items: {len(rss_items)})")
+
+def main():
+    print(f"Window: {since_str} .. {until_str}  (LOOKBACK_HOURS={LOOKBACK_HOURS})")
+
+    f4 = fetch_form4_buys()
+    save_outputs("Form4_buys", f4)
+
+    k8 = fetch_8k_bullish()
+    save_outputs("8K_bullish", k8)
+
+    k8_ma = fetch_8k_material_agreements()
+    save_outputs("8K_material_agreements", k8_ma)
+
+    g13 = fetch_13D_13G()
+    save_outputs("13D_13G", g13)
+
+    q10 = fetch_10q_bullish()
+    save_outputs("10Q_bullish", q10)
+
+    all_items = []
+    for block in (f4, k8, k8_ma, g13, q10):
+        all_items.extend(block)
+    build_rss(all_items, os.path.join(OUT_DIR, RSS_FILE))
 
 if __name__ == "__main__":
-    try:
-        run()
-    except Exception as e:
-        # korisna poruka u logu bez curenja ključa
-        print("ERROR:", e)
-        sys.exit(1)
+    main()
