@@ -9,7 +9,6 @@ permissions:
   contents: write
 
 env:
-  SEC_API_URL: https://api.sec-api.io/query
   LOOKBACK_HOURS: 168       # koliko sati unazad (7 dana)
   MAX_RESULTS: 2000         # koliko max filing-a povlači
   PYTHON_VERSION: '3.x'
@@ -29,7 +28,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests
@@ -37,7 +36,7 @@ jobs:
       - name: Fetch & save all bullish categories (JSON/CSV)
         env:
           SEC_API_KEY: ${{ secrets.SEC_API_KEY }}
-          SEC_API_URL: ${{ env.SEC_API_URL }}
+          SEC_API_URL: ${{ secrets.SEC_API_URL }}
           LOOKBACK_HOURS: ${{ env.LOOKBACK_HOURS }}
           MAX_RESULTS: ${{ env.MAX_RESULTS }}
         run: |
