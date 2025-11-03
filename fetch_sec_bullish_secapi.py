@@ -1,138 +1,229 @@
-import os, json, csv, requests
-from urllib.parse import urlparse
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-SEC_API_URL = (os.getenv("SEC_API_URL") or "").strip()
-SEC_API_KEY = (os.getenv("SEC_API_KEY") or "").strip()
+"""
+SEC Bullish Monitor (SEC-API) — single file, end-to-end
+- Auth header: Authorization: <API_KEY>  (BEZ 'Bearer ')
+- Endpoint:    https://api.sec-api.io/query
+
+ENV VARS (GitHub Secrets):
+  SEC_API_URL  = https://api.sec-api.io/query
+  SEC_API_KEY  = your_key_here
+  LOOKBACK_HOURS = 168   (opcionalno; default 168h)
+
+Outputs u rootu:
+  8K_bullish.json / .csv
+  8K_material_agreements.json / .csv
+  Form4_buys.json / .csv
+  10Q_bullish.json / .csv
+  13D_13G.json / .csv
+  sec-bullish.xml
+  (kopija RSS-a i u public/feed.xml ako postoji folder public/)
+"""
+
+import os
+import csv
+import json
+import time
+import datetime as dt
+from typing import List, Dict, Any
+
+import requests
+
+SEC_API_URL = os.getenv("SEC_API_URL", "https://api.sec-api.io/query").rstrip("/")
+SEC_API_KEY = os.getenv("SEC_API_KEY", "").strip()
 LOOKBACK_HOURS = int(os.getenv("LOOKBACK_HOURS", "168"))
-MAX_RESULTS = int(os.getenv("MAX_RESULTS", "2000"))
 
-if not SEC_API_URL:
-    raise SystemExit("❌ SEC_API_URL nije postavljen.")
-if not (SEC_API_URL.startswith("http://") or SEC_API_URL.startswith("https://")):
-    raise SystemExit("❌ SEC_API_URL mora početi s http(s)://")
 if not SEC_API_KEY:
-    raise SystemExit("❌ SEC_API_KEY nije postavljen.")
+    raise SystemExit("SEC_API_KEY nije postavljen.")
 
-def make_headers(mode):
-    if mode == "bearer":
-        return {"Content-Type":"application/json","Authorization":f"Bearer {SEC_API_KEY}"}
-    if mode == "raw":
-        return {"Content-Type":"application/json","Authorization":SEC_API_KEY}
-    raise ValueError("bad mode")
+HEADERS = {
+    "Authorization": SEC_API_KEY,            # bez 'Bearer '
+    "Content-Type": "application/json"
+}
 
-def try_post(url, payload, mode):
-    h = make_headers(mode)
-    r = requests.post(url, headers=h, json=payload, timeout=60)
-    path = urlparse(url).path or "/"
-    print(f"HTTP {r.status_code} @ {urlparse(url).netloc}{path} | auth={mode}")
-    if r.status_code == 404:
-        return None, 404
-    if r.status_code == 401 or r.status_code == 403:
-        # auth problem – probat ćemo drugi header mode
-        return None, r.status_code
+# ----- util -----
+def now_utc_iso() -> str:
+    return dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+def date_range_lucene(hours: int) -> str:
+    # SEC-API podržava relativno vrijeme: now-168h TO now
+    return f"[now-{hours}h TO now]"
+
+def post_query(payload: Dict[str, Any]) -> Dict[str, Any]:
+    r = requests.post(f"{SEC_API_URL}/query", headers=HEADERS, json=payload, timeout=60)
     r.raise_for_status()
-    return r.json(), r.status_code
+    return r.json()
 
-def auto_request(base_url, payload):
-    # kandidati URL-a
-    if base_url.rstrip("/").endswith("/query"):
-        alt_url = base_url.rstrip("/").rsplit("/query",1)[0] or base_url
-    else:
-        alt_url = base_url.rstrip("/") + "/query"
-    url_candidates = [base_url, alt_url] if alt_url != base_url else [base_url]
+def save_json(path: str, data: Any):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
-    # kandidati headera
-    auth_modes = ["bearer","raw"]
-
-    last_err = None
-    for u in url_candidates:
-        for m in auth_modes:
-            try:
-                data, code = try_post(u, payload, m)
-                if data is not None:
-                    print(f"✅ USING url={u} auth={m}")
-                    return data
-                last_err = (u, m, code)
-            except requests.HTTPError as e:
-                last_err = (u, m, f"HTTPError {e.response.status_code}")
-            except Exception as e:
-                last_err = (u, m, f"{type(e).__name__}: {e}")
-
-    raise SystemExit(f"❌ Nije uspjelo ni s jednom kombinacijom. Zadnja greška: {last_err}")
-
-def normalize(f):
-    def g(*ks):
-        for k in ks:
-            v = f.get(k)
-            if v: return v
-        return ""
-    return {
-        "ticker": g("ticker","issuerTradingSymbol","companyTicker"),
-        "company": g("companyName","issuerName","companyNameLong"),
-        "form": g("formType","form"),
-        "filedAt": g("filedAt","filingDate","acceptedDateTime"),
-        "url": g("linkToFilingDetails","linkToFiling","documentUrl"),
-        "cik": g("cik","issuerCik","companyCik"),
-    }
-
-def save(rows, basename):
+def save_csv(path: str, rows: List[Dict[str, Any]], field_order: List[str] = None):
     if not rows:
-        print(f"⚠️ 0 results -> {basename}.csv/json")
-        open(f"{basename}.json","w").write("[]")
-        open(f"{basename}.csv","w").write("")
+        # kreiraj prazan CSV s minimalnim headerom
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["empty"])
         return
-    keys = sorted(rows[0].keys())
-    with open(f"{basename}.json","w",encoding="utf-8") as j:
-        json.dump(rows, j, ensure_ascii=False, indent=2)
-    with open(f"{basename}.csv","w",newline="",encoding="utf-8") as c:
-        w = csv.DictWriter(c, fieldnames=keys); w.writeheader(); w.writerows(rows)
-    print(f"Saved {len(rows)} -> {basename}.json, {basename}.csv")
-
-def q_8k(h=LOOKBACK_HOURS):
-    return {
-      "query":{"query_string":{"query":f'formType:"8-K" AND filedAt:[NOW-{h}HOURS TO NOW] AND items:("2.02" OR "7.01" OR "1.01" OR "5.02" OR "8.01")'}},
-      "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
-    }
-
-def q_13d13g(h=LOOKBACK_HOURS):
-    return {
-      "query":{"query_string":{"query":f'formType:("SC 13D" OR "SC 13D/A" OR "SC 13G" OR "SC 13G/A") AND filedAt:[NOW-{h}HOURS TO NOW]'}},
-      "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
-    }
-
-def q_form4(h=LOOKBACK_HOURS):
-    return {
-      "query":{"query_string":{"query":f'formType:"4" AND filedAt:[NOW-{h}HOURS TO NOW]'}},
-      "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
-    }
-
-def q_10q(h=LOOKBACK_HOURS):
-    return {
-      "query":{"query_string":{"query":f'formType:"10-Q" AND filedAt:[NOW-{h}HOURS TO NOW]'}},
-      "from":0,"size":MAX_RESULTS,"sort":[{"filedAt":{"order":"desc"}}]
-    }
-
-def fetch_norm(query, name):
-    data = auto_request(SEC_API_URL, query)
-    # SEC-API shape
-    if isinstance(data, dict) and "filings" in data:
-        rows = [normalize(x) for x in data["filings"]]
-    elif isinstance(data, dict) and "hits" in data and "hits" in data["hits"]:
-        rows = [normalize(h.get("_source", h)) for h in data["hits"]["hits"]]
-    elif isinstance(data, list):
-        rows = [normalize(x) for x in data]
+    # sklopi polja
+    keys = set()
+    for r in rows:
+        keys.update(r.keys())
+    if field_order:
+        ordered = [k for k in field_order if k in keys] + [k for k in sorted(keys) if k not in set(field_order)]
     else:
-        rows = []
-    save(rows, name)
-    return len(rows)
+        ordered = sorted(keys)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=ordered)
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k, "") for k in ordered})
 
-def run():
-    total = 0
-    total += fetch_norm(q_8k(), "8K_bullish")
-    total += fetch_norm(q_13d13g(), "13D_13G")
-    total += fetch_norm(q_form4(), "Form4_buys")
-    total += fetch_norm(q_10q(), "10Q_bullish")
-    print(f"✅ Total normalized rows: {total}")
+def normalize_filing(f: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Polja u SEC-API response-u znaju varirati; ovo hvata uobičajene nazive.
+    """
+    # linkovi
+    link = f.get("linkToFiling") or f.get("linkToHtml") or f.get("linkToFilingDetails") or ""
+    # datumi
+    filed_at = f.get("filedAt") or f.get("filedOn") or ""
+    period = f.get("periodOfReport") or ""
+    # firma / ticker
+    company = f.get("companyName") or f.get("company", {}).get("name") or ""
+    ticker = f.get("ticker") or f.get("company", {}).get("ticker") or ""
+    form = f.get("formType") or f.get("form") or ""
+    cik = f.get("cik") or f.get("company", {}).get("cik") or ""
+    title = f.get("documentTitle") or f.get("title") or f.get("description") or ""
+
+    return {
+        "formType": form,
+        "filedAt": filed_at,
+        "periodOfReport": period,
+        "companyName": company,
+        "ticker": ticker,
+        "cik": cik,
+        "title": title,
+        "link": link
+    }
+
+def run_query_to_files(name: str, lucene: str, size: int = 100) -> List[Dict[str, Any]]:
+    payload = {
+        "query": {"query_string": {"query": lucene}},
+        "from": 0,
+        "size": size,
+        "sort": [{"filedAt": {"order": "desc"}}]
+    }
+    data = post_query(payload)
+    filings = data.get("filings") or data.get("data") or data.get("results") or []
+    rows = [normalize_filing(f) for f in filings]
+
+    # JSON + CSV
+    save_json(f"{name}.json", rows)
+    save_csv(f"{name}.csv", rows, field_order=["formType", "filedAt", "companyName", "ticker", "title", "link", "cik", "periodOfReport"])
+    print(f"Saved {len(rows)} → {name}.json, {name}.csv")
+    return rows
+
+# ----- upiti (lucene) -----
+def q_8k_bullish(hours: int) -> str:
+    # 8-K s pozitivnim ključnim pojmovima
+    terms = [
+        "guidance raised", "raises guidance", "increase guidance",
+        "share repurchase", "buyback", "dividend increase",
+        "contract award", "wins contract", "strategic partnership",
+        "FDA approval", "breakthrough", "uplisting", "reinstates dividend"
+    ]
+    term_expr = "(" + " OR ".join([f"\"{t}\"" for t in terms]) + ")"
+    return f'formType:"8-K" AND filedAt:{date_range_lucene(hours)} AND {term_expr} NOT ("ATM" OR "at-the-market" OR "warrant" OR "S-1")'
+
+def q_8k_material_agreements(hours: int) -> str:
+    # 1.01 - Entry into a Material Definitive Agreement
+    return f'formType:"8-K" AND filedAt:{date_range_lucene(hours)} AND (Item 1.01 OR "material definitive agreement") NOT ("ATM" OR "at-the-market")'
+
+def q_form4_buys(hours: int) -> str:
+    # Insider purchase (transactionCode P)
+    # SEC-API parsira Form 4 transakcije pa "transactionCode:P" često radi
+    return f'formType:"4" AND filedAt:{date_range_lucene(hours)} AND transactionCode:"P"'
+
+def q_10q_bullish(hours: int) -> str:
+    # 10-Q s frazama koje mogu upućivati na dobar ton
+    return f'formType:"10-Q" AND filedAt:{date_range_lucene(hours)} AND ("raises guidance" OR "increase production" OR "improved liquidity" OR "improved gross margin")'
+
+def q_13d_13g(hours: int) -> str:
+    # znatna vlasnička prijava
+    return f'(formType:"SC 13D" OR formType:"SC 13G") AND filedAt:{date_range_lucene(hours)}'
+
+# ----- RSS -----
+def build_rss(all_rows: List[Dict[str, Any]]) -> str:
+    """
+    Vrati jednostavan RSS XML string za sve zapise spojeno (po filedAt desc).
+    """
+    # sort by filedAt (desc)
+    def ts(x):
+        val = x.get("filedAt", "")
+        try:
+            # filedAt je ISO (npr 2025-11-03T10:02:00Z)
+            return time.mktime(dt.datetime.strptime(val.replace("Z",""), "%Y-%m-%dT%H:%M:%S").timetuple())
+        except Exception:
+            return 0
+
+    items = sorted(all_rows, key=ts, reverse=True)[:300]
+
+    def esc(s: str) -> str:
+        return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    now_rfc = dt.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+    parts = []
+    parts.append('<?xml version="1.0" encoding="UTF-8"?>')
+    parts.append('<rss version="2.0"><channel>')
+    parts.append("<title>SEC Bullish Monitor</title>")
+    parts.append("<description>8-K bullish / material agreements, Form 4 insider buys, 10-Q bullish, 13D/G</description>")
+    parts.append("<link>https://liucko.github.io/sec-bullish-monitor/</link>")
+    parts.append(f"<lastBuildDate>{now_rfc}</lastBuildDate>")
+
+    for r in items:
+        title = f'{r.get("formType","")} | {r.get("companyName","")} {("("+r["ticker"]+")") if r.get("ticker") else ""}'
+        desc = r.get("title") or ""
+        link = r.get("link") or ""
+        pub = r.get("filedAt") or ""
+        parts.append("<item>")
+        parts.append(f"<title>{esc(title)}</title>")
+        parts.append(f"<description>{esc(desc)}</description>")
+        parts.append(f"<link>{esc(link)}</link>")
+        parts.append(f"<guid isPermaLink='true'>{esc(link)}</guid>")
+        parts.append(f"<pubDate>{esc(pub)}</pubDate>")
+        parts.append("</item>")
+
+    parts.append("</channel></rss>")
+    return "\n".join(parts)
+
+def write_rss(xml: str):
+    with open("sec-bullish.xml", "w", encoding="utf-8") as f:
+        f.write(xml)
+    # i kopija u public/feed.xml ako postoji public/
+    if os.path.isdir("public"):
+        with open(os.path.join("public", "feed.xml"), "w", encoding="utf-8") as f:
+            f.write(xml)
+    print("Saved RSS → sec-bullish.xml", "(+ public/feed.xml)" if os.path.isdir("public") else "")
+
+# ----- main -----
+def main():
+    print(f"Starting @ {now_utc_iso()}  | lookback {LOOKBACK_HOURS}h")
+    print(f"POST {SEC_API_URL}/query  (Authorization header)")
+
+    all_rows: List[Dict[str, Any]] = []
+
+    all_rows += run_query_to_files("8K_bullish", q_8k_bullish(LOOKBACK_HOURS), size=120)
+    all_rows += run_query_to_files("8K_material_agreements", q_8k_material_agreements(LOOKBACK_HOURS), size=120)
+    all_rows += run_query_to_files("Form4_buys", q_form4_buys(LOOKBACK_HOURS), size=200)
+    all_rows += run_query_to_files("10Q_bullish", q_10q_bullish(LOOKBACK_HOURS), size=120)
+    all_rows += run_query_to_files("13D_13G", q_13d_13g(LOOKBACK_HOURS), size=120)
+
+    rss = build_rss(all_rows)
+    write_rss(rss)
+
+    print(f"Done @ {now_utc_iso()} | total items in RSS: {len(all_rows)}")
 
 if __name__ == "__main__":
-    run()
+    main()
